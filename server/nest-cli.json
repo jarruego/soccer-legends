@@ -1,0 +1,16 @@
+{
+  "name": "@nestjs/schematics",
+  "version": "10.0.3",
+  "description": "Nest CLI schematics",
+  "source": "src",
+  "builders": {
+    "generate": {
+      "implementation": "./dist/builders/generate",
+      "schema": "./src/builders/generate/schema.json"
+    },
+    "build": {
+      "implementation": "./dist/builders/build",
+      "schema": "./src/builders/build/schema.json"
+    }
+  }
+}

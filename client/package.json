@@ -1,0 +1,43 @@
+{
+  "name": "soccer-legends-app",
+  "version": "1.0.0",
+  "description": "Soccer Legends Money Management App",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "eject": "expo eject",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^6.5.11",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.15",
+    "axios": "^1.6.5",
+    "expo": "^54.0.33",
+    "expo-screen-orientation": "^9.0.8",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.23.0",
+    "react-native-web": "^0.21.2",
+    "typescript": "^5.3.3",
+    "zustand": "^4.4.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.6",
+    "@types/react": "~19.1.10",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2"
+  },
+  "private": true
+}
