@@ -1,90 +1,27 @@
-# Soccer Legends - Money Management App
+# Soccer Legends (uso personal)
 
-Una aplicación móvil completa para gestionar dinero en partidas de fútbol entre amigos.
+App pequeña para **gestionar dinero/partidas** durante un juego de cartas familiar.  
+Proyecto para **uso propio**, sin testing ni despliegue público.
 
-## 📱 Características
+## 📦 Tech stack
+- **Frontend:** React Native (Expo)
+- **Backend:** NestJS + Drizzle
+- **DB:** PostgreSQL
 
-✅ **Registro y Autenticación**: Sistema seguro con JWT  
-✅ **Crear Partidas**: El creador genera un PIN único (6 caracteres)  
-✅ **Unirse a Partidas**: Los jugadores se unen con el PIN  
-✅ **Gestión de Dinero**: Transferencias entre jugadores y banca en tiempo real  
-✅ **Multiplataforma**: Android, iOS y Web  
-✅ **Soporta 2-4 jugadores**: Por partida  
-✅ **Type-Safe**: TypeScript en frontend y backend  
-✅ **Arquitectura Limpia**: Separación de capas y responsabilidades  
-
-## 🏗️ Arquitectura
-
+## 📁 Estructura (resumen)
 ```
-soccer-legends/
-├── client/                 # Frontend React Native (Expo)
-│   ├── src/
-│   │   ├── screens/       # Pantallas
-│   │   ├── components/    # Componentes reutilizables
-│   │   ├── services/      # Servicios de API
-│   │   ├── store/         # Estado global (Zustand)
-│   │   ├── navigation/    # Navegación
-│   │   ├── types/         # Tipos TypeScript
-│   │   ├── constants/     # Constantes
-│   │   └── utils/         # Utilidades
-│   └── package.json
-├── server/                 # Backend NestJS
-│   ├── src/
-│   │   ├── modules/
-│   │   │   ├── auth/      # Autenticación
-│   │   │   ├── users/     # Usuarios
-│   │   │   ├── games/     # Partidas
-│   │   │   └── transactions/ # Transacciones
-│   │   ├── database/      # Drizzle ORM
-│   │   │   └── schema/    # Esquemas
-│   │   ├── common/        # Código compartido
-│   │   └── app.module.ts
-│   ├── drizzle/           # Migraciones
-│   └── package.json
-├── docker-compose.yml     # Desarrollo local
-└── docs/                  # Documentación
+client/   # App móvil (Expo)
+server/   # API NestJS
 ```
 
-## 🛠️ Tech Stack
+## ✅ Requisitos
+- Node.js LTS
+- Docker (para PostgreSQL)
+- Git (opcional)
 
-### Backend
-- **NestJS 10** - Framework web moderno y escalable
-- **Drizzle ORM** - ORM type-safe para TypeScript
-- **PostgreSQL 16** - Base de datos confiable
-- **JWT** - Autenticación segura
-- **Docker** - Desarrollo consistente
+## ⚡ Puesta en marcha (desarrollo)
 
-**Hosting:**
-- API: Render
-- BD: Supabase (PostgreSQL)
-
-### Frontend
-- **React Native** - Desarrollo multiplataforma
-- **Expo** - Toolchain y SDK
-- **React Navigation** - Navegación nativa
-- **Zustand** - State management simple
-- **Axios** - HTTP client
-- **TypeScript** - Type safety
-
-**Hosting:**
-- Web: Vercel
-- Mobile: Stores (Google Play, Apple App Store)
-
-## 🚀 Inicio Rápido
-
-### Requisitos
-- Node.js 18+
-- Docker y Docker Compose
-- npm o yarn
-- Git
-
-### 1. Clonar repositorio
-```bash
-git clone <tu-repo-url>
-cd soccer-legends
-```
-
-### 2. Configurar Backend
+### 1) Backend + DB
 
 ```bash
 cd server
@@ -105,7 +42,7 @@ JWT_SECRET=tu_secreto_largo_y_seguro
 PORT=3000
 ```
 
-### 3. Iniciar Base de Datos
+### 2) Iniciar Base de Datos
 
 ```bash
 # Desde la raíz del proyecto
@@ -116,7 +53,7 @@ docker-compose up -d
 # pgAdmin: http://localhost:5050
 ```
 
-### 4. Ejecutar Migraciones
+### 3) Ejecutar Migraciones
 
 ```bash
 cd server
@@ -131,7 +68,7 @@ npm run db:migrate
 npm run db:studio
 ```
 
-### 5. Iniciar Backend
+### 4) Iniciar Backend
 
 ```bash
 # Modo desarrollo con hot-reload
@@ -140,7 +77,7 @@ npm run start:dev
 # La API estará en http://localhost:3000
 ```
 
-### 6. Configurar Frontend
+### 5) Configurar Frontend
 
 ```bash
 cd client
@@ -155,7 +92,7 @@ Edita `client/.env`:
 REACT_APP_API_URL=http://localhost:3000
 ```
 
-### 7. Iniciar Frontend
+### 6) Iniciar Frontend
 
 ```bash
 npm start
