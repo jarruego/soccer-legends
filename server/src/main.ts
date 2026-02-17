@@ -12,9 +12,19 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
   // Habilitar CORS para el cliente (Expo y web)
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:8081')
+    .split(',')
+    .map(origin => origin.trim());
+  console.log('🌐 CORS habilitado para:', allowedOrigins);
+  
   app.enableCors({
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:8081').split(','),
+    origin: allowedOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Authorization'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // Validación automática de DTOs
