@@ -12,6 +12,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { GamesModule } from '@/modules/games/games.module';
 import { TransactionsModule } from '@/modules/transactions/transactions.module';
+import { HealthController } from '@/common/health.controller';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { TransactionsModule } from '@/modules/transactions/transactions.module';
     GamesModule,
     TransactionsModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
   providers: [],
 })
 export class AppModule {}
