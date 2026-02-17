@@ -22,11 +22,16 @@ export class UsersRepository {
    * @returns Datos del usuario o null si no existe
    */
   async findById(id: string): Promise<User | null> {
-    const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
-    });
+    try {
+      const result = await db.query.users.findFirst({
+        where: eq(users.id, id),
+      });
 
-    return result || null;
+      return result || null;
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
@@ -35,11 +40,16 @@ export class UsersRepository {
    * @returns Datos del usuario o null si no existe
    */
   async findByEmail(email: string): Promise<User | null> {
-    const result = await db.query.users.findFirst({
-      where: eq(users.email, email.toLowerCase()),
-    });
+    try {
+      const result = await db.query.users.findFirst({
+        where: eq(users.email, email.toLowerCase()),
+      });
 
-    return result || null;
+      return result || null;
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
@@ -48,11 +58,16 @@ export class UsersRepository {
    * @returns Datos del usuario o null si no existe
    */
   async findByUsername(username: string): Promise<User | null> {
-    const result = await db.query.users.findFirst({
-      where: eq(users.username, username),
-    });
+    try {
+      const result = await db.query.users.findFirst({
+        where: eq(users.username, username),
+      });
 
-    return result || null;
+      return result || null;
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
@@ -61,9 +76,14 @@ export class UsersRepository {
    * @returns Usuario creado
    */
   async create(userData: UserInsert): Promise<User> {
-    const result = await db.insert(users).values(userData).returning();
+    try {
+      const result = await db.insert(users).values(userData).returning();
 
-    return result[0];
+      return result[0];
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
@@ -73,13 +93,18 @@ export class UsersRepository {
    * @returns Usuario actualizado
    */
   async update(id: string, updateData: Partial<UserInsert>): Promise<User | null> {
-    const result = await db
-      .update(users)
-      .set(updateData)
-      .where(eq(users.id, id))
-      .returning();
+    try {
+      const result = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, id))
+        .returning();
 
-    return result[0] || null;
+      return result[0] || null;
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
@@ -88,9 +113,14 @@ export class UsersRepository {
    * @returns true si se eliminó, false si no existe
    */
   async delete(id: string): Promise<boolean> {
-    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    try {
+      const result = await db.delete(users).where(eq(users.id, id)).returning();
 
-    return result.length > 0;
+      return result.length > 0;
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
@@ -98,7 +128,12 @@ export class UsersRepository {
    * @returns Lista de todos los usuarios
    */
   async findAll(): Promise<User[]> {
-    return db.query.users.findMany();
+    try {
+      return db.query.users.findMany();
+    } catch (e: any) {
+      console.error('DB cause:', e?.cause || e);
+      throw e;
+    }
   }
 
   /**
