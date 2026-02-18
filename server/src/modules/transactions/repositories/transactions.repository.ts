@@ -134,7 +134,8 @@ export class TransactionsRepository {
             createdAt: Date;
         }>
     > {
-        return db
+        // 1. Obtener todas las transacciones de la partida
+        const rows = await db
             .select({
                 id: transactions.id,
                 gameId: transactions.gameId,
@@ -144,30 +145,41 @@ export class TransactionsRepository {
                 type: transactions.type,
                 description: transactions.description,
                 createdAt: transactions.createdAt,
-                fromUsername: users.username,
-                fromAvatar: users.avatar,
             })
             .from(transactions)
             .where(eq(transactions.gameId, gameId))
-            .orderBy(desc(transactions.createdAt))
-            .then((rows) => {
-                return rows.map((row) => ({
-                    id: row.id,
-                    gameId: row.gameId,
-                    fromUser: row.fromUserId
-                        ? {
-                                id: row.fromUserId,
-                                username: row.fromUsername || '',
-                                avatar: row.fromAvatar,
-                            }
-                        : null,
-                    toUser: null, // Lo completo en el siguiente paso
-                    amount: row.amount,
-                    type: row.type,
-                    description: row.description,
-                    createdAt: row.createdAt,
-                }));
-            });
+            .orderBy(desc(transactions.createdAt));
+
+        // 2. Obtener todos los userIds únicos involucrados
+        const userIds = Array.from(new Set(rows.flatMap(r => [r.fromUserId, r.toUserId]).filter((id): id is string => !!id)));
+        let userMap: Record<string, { username: string; avatar: string | null }> = {};
+        if (userIds.length) {
+            const userRows = await db
+                .select({ id: users.id, username: users.username, avatar: users.avatar })
+                .from(users)
+                .where(inArray(users.id, userIds));
+            userRows.forEach(u => { userMap[u.id] = { username: u.username, avatar: u.avatar }; });
+        }
+
+        // 3. Mapear resultado con datos de usuario
+        return rows.map(row => ({
+            id: row.id,
+            gameId: row.gameId,
+            fromUser: row.fromUserId ? {
+                id: row.fromUserId,
+                username: userMap[row.fromUserId]?.username || '',
+                avatar: userMap[row.fromUserId]?.avatar || null,
+            } : null,
+            toUser: row.toUserId ? {
+                id: row.toUserId,
+                username: userMap[row.toUserId]?.username || '',
+                avatar: userMap[row.toUserId]?.avatar || null,
+            } : null,
+            amount: row.amount,
+            type: row.type,
+            description: row.description,
+            createdAt: row.createdAt,
+        }));
     }
 
     /**

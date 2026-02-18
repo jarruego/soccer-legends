@@ -379,8 +379,10 @@ export class TransactionsController {
       transactionCount: transactions.length,
       transactions: transactions.map((tx) => ({
         id: tx.id,
-        from: tx.fromUser ? tx.fromUser.username : 'Banca',
-        to: tx.toUser ? tx.toUser.username : 'Banca',
+        fromUserId: tx.fromUser ? tx.fromUser.id : null,
+        toUserId: tx.toUser ? tx.toUser.id : null,
+        fromUsername: tx.fromUser ? tx.fromUser.username : null,
+        toUsername: tx.toUser ? tx.toUser.username : null,
         amount: tx.amount,
         type: tx.type,
         description: tx.description,

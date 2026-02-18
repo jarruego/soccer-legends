@@ -17,6 +17,7 @@ import {
 import { useFocusEffect, useNavigation, NavigationProp, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { AppHeader, Button } from '@components/index';
+import { PlayerTransactionsModal } from './PlayerTransactionsModal';
 import { useAuthStore } from '@store/auth-store';
 import { gamesService } from '@services/games.service';
 import { transactionsService } from '@services/transactions.service';
@@ -56,6 +57,11 @@ export function GameDetailScreen(): React.ReactElement {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastNotifiedClaimRef = useRef<string | null>(null);
   const dismissedSeasonalClaimRef = useRef<string | null>(null);
+
+  // Estado para modal de transacciones de jugador
+  const [showPlayerTxModal, setShowPlayerTxModal] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [selectedPlayerUsername, setSelectedPlayerUsername] = useState<string | null>(null);
 
   const notifyClaimResolution = useCallback((claim: CommonFundClaim | null) => {
     if (!claim || claim.status === 'pending') return;
@@ -512,12 +518,30 @@ export function GameDetailScreen(): React.ReactElement {
                     </View>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[commonStyles.text, { color: Colors.success, fontWeight: '700', fontSize: 18 }]}>
-                      {formatMillions(player.currentBalance)}
-                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedPlayerId(player.userId);
+                        setSelectedPlayerUsername(player.username);
+                        setShowPlayerTxModal(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[commonStyles.text, { color: Colors.success, fontWeight: '700', fontSize: 18 }]}> 
+                        {formatMillions(player.currentBalance)}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
+
+                  {/* Modal de transacciones de jugador */}
+                  <PlayerTransactionsModal
+                    visible={showPlayerTxModal}
+                    onClose={() => setShowPlayerTxModal(false)}
+                    userId={selectedPlayerId || ''}
+                    gameId={gameDetail.id}
+                    username={selectedPlayerUsername || ''}
+                  />
             </View>
           ) : (
             <View style={[commonStyles.cardSmall, { alignItems: 'center' }]}>
