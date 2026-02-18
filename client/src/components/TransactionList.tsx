@@ -17,12 +17,16 @@ export interface TransactionListItem {
 interface TransactionListProps {
   transactions: TransactionListItem[];
   emptyText?: string;
+  userId?: string; // Si se pasa, se usa para calcular el signo
+
 }
 
 import { useAuthStore } from '../store/auth-store';
 
-export const TransactionList: React.FC<TransactionListProps> = ({ transactions, emptyText }) => {
+export const TransactionList: React.FC<TransactionListProps> = ({ transactions, emptyText, userId }) => {
+  // Si se pasa userId, se usa ese SIEMPRE. Si no, se usa el usuario logueado.
   const user = useAuthStore((state) => state.user);
+  const effectiveUserId = userId !== undefined ? userId : user?.id;
   if (!transactions.length) {
     return (
       <View style={styles.emptyContainer}>
@@ -36,13 +40,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
       data={transactions}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => {
-        // Determinar si es positiva o negativa para el usuario logueado
+        // Determinar si es positiva o negativa para el usuario indicado
         let isPositive = false;
-        if (user?.id) {
+        if (effectiveUserId) {
           if (item.type === 'player_to_player') {
-            isPositive = item.toUserId === user.id;
+            isPositive = item.toUserId === effectiveUserId;
           } else if (item.type === 'bank_to_player' || item.type === 'common_fund_to_player') {
-            isPositive = item.toUserId === user.id;
+            isPositive = item.toUserId === effectiveUserId;
+          } else if (item.type === 'player_to_bank' || item.type === 'player_to_common_fund') {
+            isPositive = item.fromUserId === effectiveUserId ? false : true;
           } else {
             isPositive = false;
           }

@@ -67,7 +67,7 @@ export function PlayerTransactionsModal({ visible, onClose, userId, gameId, user
             ) : error ? (
               <Text style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>{error}</Text>
             ) : (
-              <TransactionList transactions={transactions} emptyText="No hay transacciones." />
+                <TransactionList transactions={transactions} emptyText="No hay transacciones." userId={userId} />
             )}
           </View>
         </TouchableOpacity>
