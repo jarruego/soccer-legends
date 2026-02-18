@@ -15,7 +15,7 @@
  * - "finished": Partida terminada
  */
 
-import { pgTable, uuid, varchar, text, integer, decimal, timestamp, foreignKey, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, decimal, timestamp, foreignKey, index, boolean } from 'drizzle-orm/pg-core';
 import { getTimestamps } from './types';
 import { users } from './users';
 
@@ -44,11 +44,17 @@ export const games = pgTable(
     // Número de jugadores que pueden participar (2-4)
     maxPlayers: integer('max_players').notNull().default(4),
 
+    // Máximo de transferencia permitida por operación (en millones)
+    maxTransfer: integer('max_transfer').notNull().default(500),
+
     // Estado actual de la partida
     status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, active, finished
 
     // Ubicación donde se juega (opcional)
     location: varchar('location', { length: 255 }),
+
+    // Indica si la partida utiliza Fondo Común
+    hasCommonFund: boolean('has_common_fund').notNull().default(true),
 
     // Timestamps automáticos
     ...getTimestamps(),

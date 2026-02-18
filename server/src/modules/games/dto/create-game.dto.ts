@@ -4,7 +4,7 @@
  * Estos DTOs validan y transforman los datos que vienen del cliente
  */
 
-import { IsString, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, Min, Max, IsBoolean } from 'class-validator';
 
 /**
  * DTO para crear una nueva partida
@@ -27,8 +27,18 @@ export class CreateGameDto {
   maxPlayers: number = 4;
 
   @IsOptional()
+  @IsNumber()
+  @Min(5)
+  @Max(500)
+  maxTransfer?: number = 500;
+
+  @IsOptional()
   @IsString()
   location?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  hasCommonFund?: boolean = true;
 }
 
 /**

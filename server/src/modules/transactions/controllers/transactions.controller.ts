@@ -22,7 +22,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TransactionsService } from '../services/transactions.service';
-import { CreateTransactionDto, TransferToBankDto, WithdrawFromBankDto } from '../dto';
+import {
+  CreateTransactionDto,
+  TransferToBankDto,
+  TransferToCommonFundDto,
+  WithdrawFromBankDto,
+} from '../dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/modules/auth/decorators/current-user.decorator';
 import type { User } from '@/database/schema';
@@ -88,6 +93,137 @@ export class TransactionsController {
       type: transaction.type,
       createdAt: transaction.createdAt,
       message: `${transaction.amount} transferido a la banca`,
+    };
+  }
+
+  /**
+   * Realiza una transferencia de un jugador al Fondo Común
+   *
+   * @route POST /transactions/to-common-fund
+   */
+  @Post('to-common-fund')
+  @HttpCode(HttpStatus.CREATED)
+  async transferToCommonFund(
+    @CurrentUser() user: User,
+    @Body() transferToCommonFundDto: TransferToCommonFundDto,
+  ) {
+    const transaction = await this.transactionsService.transferToCommonFund(
+      user.id,
+      transferToCommonFundDto,
+    );
+
+    return {
+      id: transaction.id,
+      gameId: transaction.gameId,
+      amount: transaction.amount,
+      type: transaction.type,
+      createdAt: transaction.createdAt,
+      message: `${transaction.amount} transferido al Fondo Común`,
+    };
+  }
+
+  /**
+   * Solicita quedarse con todo el Fondo Común
+   *
+   * @route POST /transactions/:gameId/common-fund-claims/request
+   */
+  @Post(':gameId/common-fund-claims/request')
+  @HttpCode(HttpStatus.CREATED)
+  async requestCommonFundClaim(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const claim = await this.transactionsService.requestCommonFundClaim(user.id, gameId);
+
+    return {
+      id: claim.id,
+      gameId: claim.gameId,
+      requesterUserId: claim.requesterUserId,
+      status: claim.status,
+      createdAt: claim.createdAt,
+      autoApproved: !!claim.autoApproved,
+      amount: claim.amount || 0,
+      message: claim.autoApproved
+        ? 'Fondo Común transferido al instante (banca)'
+        : 'Solicitud enviada a la banca',
+    };
+  }
+
+  /**
+   * Obtiene solicitudes pendientes del Fondo Común (solo banca)
+   *
+   * @route GET /transactions/:gameId/common-fund-claims/pending
+   */
+  @Get(':gameId/common-fund-claims/pending')
+  @HttpCode(HttpStatus.OK)
+  async getPendingCommonFundClaims(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const claims = await this.transactionsService.getPendingCommonFundClaims(user.id, gameId);
+
+    return {
+      gameId,
+      claimCount: claims.length,
+      claims,
+    };
+  }
+
+  /**
+   * Obtiene mi última solicitud del Fondo Común
+   *
+   * @route GET /transactions/:gameId/common-fund-claims/my-latest
+   */
+  @Get(':gameId/common-fund-claims/my-latest')
+  @HttpCode(HttpStatus.OK)
+  async getMyLatestCommonFundClaim(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const claim = await this.transactionsService.getMyLatestCommonFundClaim(user.id, gameId);
+
+    return {
+      gameId,
+      claim,
+    };
+  }
+
+  /**
+   * Aprueba una solicitud del Fondo Común (solo banca)
+   *
+   * @route POST /transactions/common-fund-claims/:claimId/approve
+   */
+  @Post('common-fund-claims/:claimId/approve')
+  @HttpCode(HttpStatus.OK)
+  async approveCommonFundClaim(
+    @CurrentUser() user: User,
+    @Param('claimId') claimId: string,
+  ) {
+    const result = await this.transactionsService.approveCommonFundClaim(user.id, claimId);
+
+    return {
+      claim: result.claim,
+      amount: result.amount,
+      message: `Solicitud aprobada. Se transfirieron ${result.amount} del Fondo Común.`,
+    };
+  }
+
+  /**
+   * Rechaza una solicitud del Fondo Común (solo banca)
+   *
+   * @route POST /transactions/common-fund-claims/:claimId/reject
+   */
+  @Post('common-fund-claims/:claimId/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectCommonFundClaim(
+    @CurrentUser() user: User,
+    @Param('claimId') claimId: string,
+  ) {
+    const claim = await this.transactionsService.rejectCommonFundClaim(user.id, claimId);
+
+    return {
+      claim,
+      message: 'Solicitud rechazada',
     };
   }
 
@@ -204,6 +340,26 @@ export class TransactionsController {
       gameId,
       bankBalance,
       message: `Balance actual de la banca: ${bankBalance}`,
+    };
+  }
+
+  /**
+   * Obtiene el balance actual del Fondo Común
+   *
+   * @route GET /transactions/:gameId/common-fund-balance
+   */
+  @Get(':gameId/common-fund-balance')
+  @HttpCode(HttpStatus.OK)
+  async getCommonFundBalance(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const commonFundBalance = await this.transactionsService.getCommonFundBalance(gameId);
+
+    return {
+      gameId,
+      commonFundBalance,
+      message: `Balance actual del Fondo Común: ${commonFundBalance}`,
     };
   }
 

@@ -1,6 +1,6 @@
 /**
  * Pantalla de detalle de una partida
- * Muestra información de la partida, jugadores, saldo y opciones de management
+ * Muestra jugadores, acciones y Fondo Común.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,7 +19,8 @@ import type { RouteProp } from '@react-navigation/native';
 import { AppHeader, Button } from '@components/index';
 import { useAuthStore } from '@store/auth-store';
 import { gamesService } from '@services/games.service';
-import type { GameDetail } from '@/types';
+import { transactionsService } from '@services/transactions.service';
+import type { CommonFundClaim, GameDetail } from '@/types';
 import type { RootStackParamList } from '../../navigation/navigation-types';
 import { commonStyles } from '../../styles/common';
 import { Colors, Spacing } from '../../styles/theme';
@@ -37,25 +38,92 @@ export function GameDetailScreen(): React.ReactElement {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletedMessage, setDeletedMessage] = useState<string | null>(null);
+
+  const [commonFundBalance, setCommonFundBalance] = useState(0);
+  const [pendingCommonFundClaims, setPendingCommonFundClaims] = useState<CommonFundClaim[]>([]);
+  const [myLatestCommonFundClaim, setMyLatestCommonFundClaim] = useState<CommonFundClaim | null>(null);
+  const [isRequestingCommonFund, setIsRequestingCommonFund] = useState(false);
+  const [isResolvingClaimId, setIsResolvingClaimId] = useState<string | null>(null);
+  const [isGameInfoModalVisible, setIsGameInfoModalVisible] = useState(false);
+  const [activeBankClaimId, setActiveBankClaimId] = useState<string | null>(null);
+  const isCreator = currentUser?.id === gameDetail?.createdBy;
+
   const hasNotifiedDeleted = useRef(false);
   const isGameDeleted = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastNotifiedClaimRef = useRef<string | null>(null);
 
-  const handleGameDeleted = useCallback(
-    (message?: string) => {
-      if (hasNotifiedDeleted.current) return;
-      hasNotifiedDeleted.current = true;
-      isGameDeleted.current = true;
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
+  const notifyClaimResolution = useCallback((claim: CommonFundClaim | null) => {
+    if (!claim || claim.status === 'pending') return;
+    if (lastNotifiedClaimRef.current === claim.id) return;
+
+    lastNotifiedClaimRef.current = claim.id;
+    if (claim.status === 'approved') {
+      Alert.alert('Solicitud aceptada', 'La banca ha aceptado tu solicitud del Fondo Común. ✅');
+      return;
+    }
+
+    Alert.alert('Solicitud rechazada', 'La banca ha rechazado tu solicitud del Fondo Común. ❌');
+  }, []);
+
+  const loadCommonFundContext = useCallback(
+    async (game: GameDetail) => {
+      if (!game.hasCommonFund) {
+        setCommonFundBalance(0);
+        setPendingCommonFundClaims([]);
+        setMyLatestCommonFundClaim(null);
+        return;
       }
-      setGameDetail(null);
-      setIsLoading(false);
-      setDeletedMessage(message || 'La partida ha finalizado.');
+
+      const [{ commonFundBalance: balance }, pendingResult, myResult] = await Promise.all([
+        transactionsService.getCommonFundBalance(game.id),
+        currentUser?.id === game.createdBy
+          ? transactionsService.getPendingCommonFundClaims(game.id)
+          : Promise.resolve({ claimCount: 0, claims: [] }),
+        currentUser?.id !== game.createdBy
+          ? transactionsService.getMyLatestCommonFundClaim(game.id)
+          : Promise.resolve({ claim: null }),
+      ]);
+
+      setCommonFundBalance(balance || 0);
+      setPendingCommonFundClaims(pendingResult.claims || []);
+      setMyLatestCommonFundClaim(myResult.claim || null);
+
+      notifyClaimResolution(myResult.claim || null);
     },
-    [navigation],
+    [currentUser?.id, notifyClaimResolution],
   );
+
+  const activeBankClaim = pendingCommonFundClaims.find((claim) => claim.id === activeBankClaimId) || null;
+
+  useEffect(() => {
+    if (!isCreator) {
+      setActiveBankClaimId(null);
+      return;
+    }
+
+    if (pendingCommonFundClaims.length === 0) {
+      setActiveBankClaimId(null);
+      return;
+    }
+
+    if (!activeBankClaimId || !pendingCommonFundClaims.some((claim) => claim.id === activeBankClaimId)) {
+      setActiveBankClaimId(pendingCommonFundClaims[0].id);
+    }
+  }, [isCreator, pendingCommonFundClaims, activeBankClaimId]);
+
+  const handleGameDeleted = useCallback((message?: string) => {
+    if (hasNotifiedDeleted.current) return;
+    hasNotifiedDeleted.current = true;
+    isGameDeleted.current = true;
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setGameDetail(null);
+    setIsLoading(false);
+    setDeletedMessage(message || 'La partida ha finalizado.');
+  }, []);
 
   const isNotFoundError = (err: any): boolean => {
     const status = err?.statusCode || err?.response?.status;
@@ -71,6 +139,7 @@ export function GameDetailScreen(): React.ReactElement {
       setError(null);
       const data = await gamesService.getGame(gameId!);
       setGameDetail(data);
+      await loadCommonFundContext(data);
     } catch (err: any) {
       if (isNotFoundError(err)) {
         handleGameDeleted(err?.message);
@@ -80,34 +149,34 @@ export function GameDetailScreen(): React.ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [gameId, handleGameDeleted]);
+  }, [gameId, handleGameDeleted, loadCommonFundContext]);
 
   const loadGameDetailSilent = useCallback(async () => {
     if (isGameDeleted.current) return;
     try {
       const data = await gamesService.getGame(gameId!);
       setGameDetail(data);
+      await loadCommonFundContext(data);
     } catch (err: any) {
       if (isNotFoundError(err)) {
         handleGameDeleted(err?.message);
-        return;
       }
     }
-  }, [gameId, handleGameDeleted]);
+  }, [gameId, handleGameDeleted, loadCommonFundContext]);
 
   useEffect(() => {
-    if (gameId) {
-      loadGameDetail();
-      pollIntervalRef.current = setInterval(() => {
-        loadGameDetailSilent();
-      }, 3000);
-      return () => {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
-      };
-    }
+    if (!gameId) return;
+    loadGameDetail();
+    pollIntervalRef.current = setInterval(() => {
+      loadGameDetailSilent();
+    }, 3000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
   }, [gameId, loadGameDetail, loadGameDetailSilent]);
 
   useFocusEffect(
@@ -127,10 +196,9 @@ export function GameDetailScreen(): React.ReactElement {
     }
   };
 
-  const isCreator = currentUser?.id === gameDetail?.createdBy;
-
   const handleStartGame = async () => {
     if (!gameDetail) return;
+
     const runStart = async () => {
       try {
         setIsUpdating(true);
@@ -146,36 +214,25 @@ export function GameDetailScreen(): React.ReactElement {
 
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('¿Estás seguro de que deseas iniciar la partida?');
-      if (confirmed) {
-        runStart();
-      }
+      if (confirmed) runStart();
       return;
     }
 
-    Alert.alert(
-      'Iniciar Partida',
-      '¿Estás seguro de que deseas iniciar la partida?',
-      [
-        { text: 'Cancelar', onPress: () => {}, style: 'cancel' },
-        {
-          text: 'Iniciar',
-          onPress: runStart,
-        },
-      ]
-    );
+    Alert.alert('Iniciar Partida', '¿Estás seguro de que deseas iniciar la partida?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Iniciar', onPress: runStart },
+    ]);
   };
 
   const handleFinishGame = async () => {
     if (!gameDetail) return;
+
     const runFinish = async () => {
       try {
         setIsUpdating(true);
         await gamesService.updateGameStatus(gameDetail.id, 'finished');
         Alert.alert('Éxito', 'Partida finalizada', [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
+          { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } catch (err: any) {
         Alert.alert('Error', err.message || 'No se pudo finalizar la partida');
@@ -186,31 +243,66 @@ export function GameDetailScreen(): React.ReactElement {
 
     if (Platform.OS === 'web') {
       const confirmed = window.confirm('¿Estás seguro de que deseas finalizar la partida?');
-      if (confirmed) {
-        runFinish();
-      }
+      if (confirmed) runFinish();
       return;
     }
 
-    Alert.alert(
-      'Finalizar Partida',
-      '¿Estás seguro de que deseas finalizar la partida?',
-      [
-        { text: 'Cancelar', onPress: () => {}, style: 'cancel' },
-        {
-          text: 'Finalizar',
-          onPress: runFinish,
-          style: 'destructive',
-        },
-      ]
-    );
+    Alert.alert('Finalizar Partida', '¿Estás seguro de que deseas finalizar la partida?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Finalizar', style: 'destructive', onPress: runFinish },
+    ]);
   };
 
   const handleTransfer = () => {
     if (gameDetail?.status === 'active') {
       navigation.navigate('Transaction', { gameId: gameDetail.id });
-    } else {
-      Alert.alert('No permitido', 'Solo puedes transferir dinero en partidas activas');
+      return;
+    }
+    Alert.alert('No permitido', 'Solo puedes transferir dinero en partidas activas');
+  };
+
+  const handleRequestCommonFund = async () => {
+    if (!gameDetail) return;
+
+    try {
+      setIsRequestingCommonFund(true);
+      const result = await transactionsService.requestCommonFundClaim(gameDetail.id);
+      if (result.autoApproved) {
+        Alert.alert('Fondo Común cobrado', 'Como banca, has cobrado el Fondo Común al instante. ✅');
+      } else {
+        Alert.alert('Solicitud enviada', 'La banca ha recibido tu solicitud del Fondo Común.');
+      }
+      await loadGameDetailSilent();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo solicitar el Fondo Común');
+    } finally {
+      setIsRequestingCommonFund(false);
+    }
+  };
+
+  const handleApproveCommonFundClaim = async (claimId: string) => {
+    try {
+      setIsResolvingClaimId(claimId);
+      const result = await transactionsService.approveCommonFundClaim(claimId);
+      Alert.alert('Solicitud aceptada', result.message || 'Fondo Común transferido correctamente');
+      await loadGameDetailSilent();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo aprobar la solicitud');
+    } finally {
+      setIsResolvingClaimId(null);
+    }
+  };
+
+  const handleRejectCommonFundClaim = async (claimId: string) => {
+    try {
+      setIsResolvingClaimId(claimId);
+      const result = await transactionsService.rejectCommonFundClaim(claimId);
+      Alert.alert('Solicitud rechazada', result.message || 'Solicitud rechazada');
+      await loadGameDetailSilent();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo rechazar la solicitud');
+    } finally {
+      setIsResolvingClaimId(null);
     }
   };
 
@@ -229,12 +321,7 @@ export function GameDetailScreen(): React.ReactElement {
     if (deletedMessage) {
       return (
         <View style={commonStyles.container}>
-          <Modal
-            transparent
-            visible={!!deletedMessage}
-            animationType="fade"
-            onRequestClose={() => setDeletedMessage(null)}
-          >
+          <Modal transparent visible={!!deletedMessage} animationType="fade">
             <View
               style={{
                 flex: 1,
@@ -270,14 +357,7 @@ export function GameDetailScreen(): React.ReactElement {
                 >
                   Partida Finalizada
                 </Text>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    color: Colors.gray700,
-                    marginBottom: 24,
-                    lineHeight: 22,
-                  }}
-                >
+                <Text style={{ fontSize: 16, color: Colors.gray700, marginBottom: 24, lineHeight: 22 }}>
                   {deletedMessage}
                 </Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
@@ -293,9 +373,7 @@ export function GameDetailScreen(): React.ReactElement {
                       backgroundColor: Colors.success,
                     }}
                   >
-                    <Text style={{ color: Colors.white, fontWeight: '600', fontSize: 14 }}>
-                      OK
-                    </Text>
+                    <Text style={{ color: Colors.white, fontWeight: '600', fontSize: 14 }}>OK</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -304,16 +382,14 @@ export function GameDetailScreen(): React.ReactElement {
         </View>
       );
     }
+
     return (
       <View style={commonStyles.container}>
         <View style={commonStyles.containerCenter}>
           <Text style={commonStyles.emptyIcon}>⚠️</Text>
           <Text style={commonStyles.emptyTitle}>Partida no encontrada</Text>
           <Text style={commonStyles.emptyText}>{error || 'No se pudo cargar la información'}</Text>
-          <Button
-            title="Volver"
-            onPress={() => navigation.goBack()}
-          />
+          <Button title="Volver" onPress={() => navigation.goBack()} />
         </View>
       </View>
     );
@@ -333,6 +409,7 @@ export function GameDetailScreen(): React.ReactElement {
             )}
           </TouchableOpacity>
         </View>
+
         {/* Players Section */}
         <View style={commonStyles.section}>
           {gameDetail.players.length > 0 ? (
@@ -340,7 +417,17 @@ export function GameDetailScreen(): React.ReactElement {
               {gameDetail.players.map((player) => (
                 <View key={player.userId} style={[commonStyles.cardSmall, commonStyles.rowBetween]}>
                   <View style={commonStyles.row}>
-                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md }}>
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: Colors.primaryLight,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: Spacing.md,
+                      }}
+                    >
                       <Text style={{ fontWeight: '700', color: Colors.primaryDark }}>
                         {player.avatar || player.username[0].toUpperCase()}
                       </Text>
@@ -364,111 +451,256 @@ export function GameDetailScreen(): React.ReactElement {
           )}
         </View>
 
+        {gameDetail.status === 'active' && (
+          <TouchableOpacity
+            style={[commonStyles.buttonBase, { backgroundColor: Colors.warning }]}
+            onPress={handleTransfer}
+          >
+            <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>💸 Transferir Dinero</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Fondo Común (debajo de jugadores) */}
+        {gameDetail.hasCommonFund && commonFundBalance > 0 && (
+          <View style={commonStyles.cardSmall}>
+            <Text style={commonStyles.sectionTitle}>🎯 Fondo Común</Text>
+            <View style={[commonStyles.balanceBox, { marginTop: Spacing.sm }]}> 
+              <Text style={commonStyles.balanceLabel}>Saldo actual</Text>
+              <Text style={commonStyles.balanceValue}>{formatMillions(commonFundBalance)}</Text>
+            </View>
+
+            {gameDetail.status === 'active' && commonFundBalance > 0 && (
+              <View style={{ marginTop: Spacing.md }}>
+                <Button
+                  title={
+                    isRequestingCommonFund
+                      ? 'Procesando...'
+                      : isCreator
+                        ? 'Cobrar Fondo Común (Banca)'
+                        : 'Solicitar Fondo Común'
+                  }
+                  onPress={handleRequestCommonFund}
+                  loading={isRequestingCommonFund}
+                  disabled={isRequestingCommonFund}
+                />
+              </View>
+            )}
+
+            {!isCreator && myLatestCommonFundClaim?.status === 'pending' && (
+              <Text style={[commonStyles.textSmall, { marginTop: Spacing.sm }]}>⏳ Tienes una solicitud pendiente de respuesta.</Text>
+            )}
+
+            {isCreator && pendingCommonFundClaims.length > 0 && (
+              <Text style={[commonStyles.textSmall, { marginTop: Spacing.sm }]}>⏳ Tienes solicitudes pendientes por revisar.</Text>
+            )}
+          </View>
+        )}
+
         {/* Actions Section */}
         <View style={commonStyles.section}>
-          {isCreator && (
-            <>
-              {gameDetail.status === 'pending' && (
-                <TouchableOpacity
-                  style={[commonStyles.buttonBase, { backgroundColor: Colors.success }]}
-                  onPress={handleStartGame}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>▶️ Iniciar Partida</Text>
-                  )}
-                </TouchableOpacity>
-              )}
-
-              {gameDetail.status === 'finished' && (
-                <View style={[commonStyles.successBox, { alignItems: 'center' }]}>
-                  <Text style={[commonStyles.text, { color: Colors.success, fontWeight: '700' }]}>✅ Partida Finalizada</Text>
-                </View>
-              )}
-            </>
-          )}
-
-          {gameDetail.status === 'active' && (
-            <TouchableOpacity 
-              style={[commonStyles.buttonBase, { backgroundColor: Colors.warning }]} 
-              onPress={handleTransfer}
+          {isCreator && gameDetail.status === 'pending' && (
+            <TouchableOpacity
+              style={[commonStyles.buttonBase, { backgroundColor: Colors.success }]}
+              onPress={handleStartGame}
+              disabled={isUpdating}
             >
-              <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>💸 Transferir Dinero</Text>
+              {isUpdating ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>▶️ Iniciar Partida</Text>
+              )}
             </TouchableOpacity>
           )}
-        </View>
 
-        {/* Game Info Card */}
-        <View style={commonStyles.card}>
-          <View style={commonStyles.rowBetween}>
-            <View>
-              <Text style={commonStyles.labelSmall}>Estado</Text>
-              <Text style={[commonStyles.text, { color: getStatusColor(gameDetail.status), fontWeight: '700' }]}>
-                {getStatusLabel(gameDetail.status)}
-              </Text>
-            </View>
-            <View>
-              <Text style={commonStyles.labelSmall}>Saldo Inicial</Text>
-              <Text style={[commonStyles.text, { fontWeight: '700' }]}>
-                {formatMillions(gameDetail.initialBalance)}
-              </Text>
-            </View>
-            <View>
-              <Text style={commonStyles.labelSmall}>Jugadores</Text>
-              <Text style={[commonStyles.text, { fontWeight: '700' }]}>
-                {gameDetail.playerCount}/{gameDetail.maxPlayers}
-              </Text>
-            </View>
-          </View>
-
-          {gameDetail.description && (
-            <View style={{ paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.gray200, marginTop: Spacing.md }}>
-              <Text style={commonStyles.labelSmall}>Descripción</Text>
-              <Text style={commonStyles.text}>{gameDetail.description}</Text>
+          {isCreator && gameDetail.status === 'finished' && (
+            <View style={[commonStyles.successBox, { alignItems: 'center' }]}>
+              <Text style={[commonStyles.text, { color: Colors.success, fontWeight: '700' }]}>✅ Partida Finalizada</Text>
             </View>
           )}
 
-          <View style={commonStyles.infoBox}>
+        </View>
+
+        {/* Código de Acceso (abajo del todo) */}
+        <TouchableOpacity
+          style={[commonStyles.infoBox, { marginTop: 0, marginBottom: Spacing.md }]}
+          onPress={() => setIsGameInfoModalVisible(true)}
+          activeOpacity={0.85}
+        >
+          <View style={[commonStyles.rowBetween, { marginBottom: Spacing.xs }]}> 
             <Text style={commonStyles.labelSmall}>Código de Acceso</Text>
-            <Text style={[commonStyles.text, { fontSize: 20, fontWeight: '700', letterSpacing: 2, marginVertical: Spacing.sm }]}>
-              {gameDetail.pin}
-            </Text>
-            <Text style={commonStyles.textSmall}>Comparte este código para que otros se unan</Text>
+            <Text style={[commonStyles.textSmall, { fontWeight: '700' }]}>ℹ️</Text>
           </View>
-
-          <View style={[commonStyles.rowBetween, { paddingTop: Spacing.md }]}
+          <Text
+            style={[
+              commonStyles.text,
+              { fontSize: 20, fontWeight: '700', letterSpacing: 2, marginVertical: Spacing.xs },
+            ]}
           >
-            <View>
-              <Text style={commonStyles.labelSmall}>Creada por</Text>
-              <Text style={[commonStyles.text, { fontWeight: '600' }]}>
-                {isCreator ? 'Tú' : 'Otro jugador'}
-              </Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={commonStyles.labelSmall}>Fecha de creación</Text>
-              <Text style={[commonStyles.text, { fontWeight: '600' }]}>{formatDate(gameDetail.createdAt)}</Text>
-            </View>
-          </View>
+            {gameDetail.pin}
+          </Text>
+        </TouchableOpacity>
 
-          {isCreator && gameDetail.status === 'active' && (
-            <View style={{ marginTop: Spacing.md }}>
-              <TouchableOpacity
-                style={[commonStyles.buttonBase, { backgroundColor: Colors.error }]}
-                onPress={handleFinishGame}
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <ActivityIndicator size="small" color={Colors.white} />
-                ) : (
-                  <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>⛔ Finalizar Partida</Text>
-                )}
+        {/* Finalizar debajo del código */}
+        {isCreator && gameDetail.status === 'active' && (
+          <TouchableOpacity
+            style={[commonStyles.buttonBase, { backgroundColor: Colors.error }]}
+            onPress={handleFinishGame}
+            disabled={isUpdating}
+          >
+            {isUpdating ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>⛔ Finalizar Partida</Text>
+            )}
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      <Modal
+        transparent
+        visible={isGameInfoModalVisible}
+        animationType="fade"
+        onRequestClose={() => setIsGameInfoModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setIsGameInfoModalVisible(false)}
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: Spacing.lg,
+          }}
+        >
+          <View
+            style={[
+              commonStyles.cardSmall,
+              {
+                width: '100%',
+                maxWidth: 460,
+                marginBottom: 0,
+              },
+            ]}
+          >
+            <View style={[commonStyles.rowBetween, { marginBottom: Spacing.sm }]}> 
+              <Text style={[commonStyles.text, { fontWeight: '700' }]}>Información de la partida</Text>
+              <TouchableOpacity onPress={() => setIsGameInfoModalVisible(false)}>
+                <Text style={[commonStyles.text, { fontWeight: '700' }]}>✕</Text>
               </TouchableOpacity>
             </View>
-          )}
+
+            <View style={commonStyles.rowBetween}>
+              <View>
+                <Text style={commonStyles.labelSmall}>Estado</Text>
+                <Text style={[commonStyles.text, { color: getStatusColor(gameDetail.status), fontWeight: '700' }]}>
+                  {getStatusLabel(gameDetail.status)}
+                </Text>
+              </View>
+              <View>
+                <Text style={commonStyles.labelSmall}>Saldo Inicial</Text>
+                <Text style={[commonStyles.text, { fontWeight: '700' }]}>
+                  {formatMillions(gameDetail.initialBalance)}
+                </Text>
+              </View>
+              <View>
+                <Text style={commonStyles.labelSmall}>Jugadores</Text>
+                <Text style={[commonStyles.text, { fontWeight: '700' }]}>
+                  {gameDetail.playerCount}/{gameDetail.maxPlayers}
+                </Text>
+              </View>
+            </View>
+
+            {gameDetail.description && (
+              <View
+                style={{
+                  paddingTop: Spacing.sm,
+                  borderTopWidth: 1,
+                  borderTopColor: Colors.gray200,
+                  marginTop: Spacing.sm,
+                }}
+              >
+                <Text style={commonStyles.labelSmall}>Descripción</Text>
+                <Text style={[commonStyles.text, { marginTop: 2 }]}>{gameDetail.description}</Text>
+              </View>
+            )}
+
+            {gameDetail.hasCommonFund && (
+              <View style={[commonStyles.rowBetween, { paddingTop: Spacing.sm }]}> 
+                <Text style={commonStyles.labelSmall}>Fondo Común</Text>
+                <Text style={[commonStyles.text, { fontWeight: '600' }]}>✅ Activado</Text>
+              </View>
+            )}
+
+            <View style={[commonStyles.rowBetween, { paddingTop: Spacing.sm }]}> 
+              <View>
+                <Text style={commonStyles.labelSmall}>Creada por</Text>
+                <Text style={[commonStyles.text, { fontWeight: '600' }]}>
+                  {isCreator ? 'Tú' : 'Otro jugador'}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={commonStyles.labelSmall}>Fecha de creación</Text>
+                <Text style={[commonStyles.text, { fontWeight: '600' }]}>{formatDate(gameDetail.createdAt)}</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={!!activeBankClaim}
+        animationType="fade"
+        onRequestClose={() => setActiveBankClaimId(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: Spacing.lg,
+          }}
+        >
+          <View
+            style={[
+              commonStyles.cardSmall,
+              {
+                width: '100%',
+                maxWidth: 460,
+                marginBottom: 0,
+              },
+            ]}
+          >
+            <Text style={[commonStyles.text, { fontWeight: '700', marginBottom: Spacing.sm }]}>
+              Solicitud de cobro del Fondo Común
+            </Text>
+            <Text style={commonStyles.text}>
+              👤 {activeBankClaim?.requesterUsername || 'Jugador'} solicita quedarse con todo el Fondo Común.
+            </Text>
+            <Text style={[commonStyles.textSmall, { marginTop: Spacing.xs }]}>¿Deseas aceptar la solicitud?</Text>
+
+            <View style={[commonStyles.row, { marginTop: Spacing.md }]}> 
+              <TouchableOpacity
+                style={[commonStyles.buttonSmall, { backgroundColor: Colors.success, marginRight: Spacing.sm }]}
+                onPress={() => activeBankClaim && handleApproveCommonFundClaim(activeBankClaim.id)}
+                disabled={!activeBankClaim || isResolvingClaimId === activeBankClaim?.id}
+              >
+                <Text style={[commonStyles.textSmall, { color: Colors.white, fontWeight: '700' }]}>Aceptar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[commonStyles.buttonSmall, { backgroundColor: Colors.error }]}
+                onPress={() => activeBankClaim && handleRejectCommonFundClaim(activeBankClaim.id)}
+                disabled={!activeBankClaim || isResolvingClaimId === activeBankClaim?.id}
+              >
+                <Text style={[commonStyles.textSmall, { color: Colors.white, fontWeight: '700' }]}>Rechazar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 }

@@ -21,7 +21,9 @@ export class GamesRepository {
     description?: string;
     initialBalance: number;
     maxPlayers: number;
+    maxTransfer?: number;
     location?: string;
+    hasCommonFund?: boolean;
   }): Promise<Game> {
     const result = await db
       .insert(games)
@@ -32,7 +34,9 @@ export class GamesRepository {
         description: gameData.description || null,
         initialBalance: gameData.initialBalance.toString(),
         maxPlayers: gameData.maxPlayers,
+        maxTransfer: gameData.maxTransfer ?? 500,
         location: gameData.location || null,
+        hasCommonFund: gameData.hasCommonFund ?? true,
         status: 'pending',
       })
       .returning();

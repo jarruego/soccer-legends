@@ -14,8 +14,10 @@ export class GameResponseDto {
   pin!: string;
   initialBalance!: string;
   maxPlayers!: number;
+  maxTransfer!: number;
   status!: string;
   location!: string | null;
+  hasCommonFund!: boolean;
   createdBy!: string;
   createdAt!: Date;
   updatedAt!: Date;
@@ -48,6 +50,8 @@ export class CreateGameResponseDto {
   id!: string;
   pin!: string;
   name!: string;
+  maxTransfer!: number;
+  hasCommonFund!: boolean;
   message!: string;
 }
 
@@ -59,5 +63,7 @@ export class JoinGameResponseDto {
   name!: string;
   playerCount!: number;
   maxPlayers!: number;
+  maxTransfer!: number;
+  hasCommonFund!: boolean;
   message!: string;
 }

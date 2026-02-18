@@ -6,7 +6,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { db } from '@/database/db';
-import { transactions, users, type Transaction, TransactionType } from '@/database/schema';
+import {
+    transactions,
+    users,
+    commonFundClaims,
+    type Transaction,
+    type CommonFundClaim,
+    CommonFundClaimStatus,
+    TransactionType,
+} from '@/database/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
 import { gte, lte, or } from 'drizzle-orm';
@@ -188,6 +196,151 @@ export class TransactionsRepository {
         });
 
         return balance;
+    }
+
+    /**
+     * Calcula el balance total del Fondo Común en una partida
+     */
+    async calculateCommonFundBalance(gameId: string): Promise<number> {
+        const result = await db
+            .select()
+            .from(transactions)
+            .where(
+                and(
+                    eq(transactions.gameId, gameId),
+                    or(
+                        eq(transactions.type, TransactionType.PLAYER_TO_COMMON_FUND),
+                        eq(transactions.type, TransactionType.COMMON_FUND_TO_PLAYER),
+                    ),
+                ),
+            );
+
+        return result.reduce((sum, tx) => {
+            const amount = parseFloat(tx.amount);
+            if (tx.type === TransactionType.PLAYER_TO_COMMON_FUND) {
+                return sum + amount;
+            }
+            if (tx.type === TransactionType.COMMON_FUND_TO_PLAYER) {
+                return sum - amount;
+            }
+            return sum;
+        }, 0);
+    }
+
+    /**
+     * Crea una solicitud para cobrar el Fondo Común
+     */
+    async createCommonFundClaim(gameId: string, requesterUserId: string): Promise<CommonFundClaim> {
+        const result = await db
+            .insert(commonFundClaims)
+            .values({
+                gameId,
+                requesterUserId,
+                status: CommonFundClaimStatus.PENDING,
+            })
+            .returning();
+
+        return result[0];
+    }
+
+    /**
+     * Obtiene una solicitud por ID
+     */
+    async findCommonFundClaimById(id: string): Promise<CommonFundClaim | null> {
+        const result = await db.query.commonFundClaims.findFirst({
+            where: eq(commonFundClaims.id, id),
+        });
+
+        return result || null;
+    }
+
+    /**
+     * Obtiene la solicitud pendiente de una partida
+     */
+    async findPendingCommonFundClaimByGame(gameId: string): Promise<CommonFundClaim | null> {
+        const result = await db.query.commonFundClaims.findFirst({
+            where: and(
+                eq(commonFundClaims.gameId, gameId),
+                eq(commonFundClaims.status, CommonFundClaimStatus.PENDING),
+            ),
+            orderBy: desc(commonFundClaims.createdAt),
+        });
+
+        return result || null;
+    }
+
+    /**
+     * Obtiene solicitudes pendientes de una partida con datos del usuario solicitante
+     */
+    async findPendingCommonFundClaimsWithUser(gameId: string): Promise<
+        Array<{
+            id: string;
+            gameId: string;
+            requesterUserId: string;
+            requesterUsername: string;
+            requesterAvatar: string | null;
+            status: string;
+            createdAt: Date;
+        }>
+    > {
+        return db
+            .select({
+                id: commonFundClaims.id,
+                gameId: commonFundClaims.gameId,
+                requesterUserId: commonFundClaims.requesterUserId,
+                requesterUsername: users.username,
+                requesterAvatar: users.avatar,
+                status: commonFundClaims.status,
+                createdAt: commonFundClaims.createdAt,
+            })
+            .from(commonFundClaims)
+            .innerJoin(users, eq(commonFundClaims.requesterUserId, users.id))
+            .where(
+                and(
+                    eq(commonFundClaims.gameId, gameId),
+                    eq(commonFundClaims.status, CommonFundClaimStatus.PENDING),
+                ),
+            )
+            .orderBy(desc(commonFundClaims.createdAt));
+    }
+
+    /**
+     * Obtiene la última solicitud de un usuario en una partida
+     */
+    async findLatestCommonFundClaimByRequester(
+        gameId: string,
+        requesterUserId: string,
+    ): Promise<CommonFundClaim | null> {
+        const result = await db.query.commonFundClaims.findFirst({
+            where: and(
+                eq(commonFundClaims.gameId, gameId),
+                eq(commonFundClaims.requesterUserId, requesterUserId),
+            ),
+            orderBy: desc(commonFundClaims.createdAt),
+        });
+
+        return result || null;
+    }
+
+    /**
+     * Actualiza el estado de una solicitud del Fondo Común
+     */
+    async resolveCommonFundClaim(
+        claimId: string,
+        status: CommonFundClaimStatus.APPROVED | CommonFundClaimStatus.REJECTED,
+        resolvedByUserId: string,
+    ): Promise<CommonFundClaim | null> {
+        const result = await db
+            .update(commonFundClaims)
+            .set({
+                status,
+                resolvedByUserId,
+                resolvedAt: new Date(),
+            })
+            .where(eq(commonFundClaims.id, claimId))
+            .returning();
+
+        return result[0] || null;
     }
 
     /**

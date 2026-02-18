@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "max_transfer" integer DEFAULT 500 NOT NULL;

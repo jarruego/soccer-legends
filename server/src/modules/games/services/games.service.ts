@@ -51,6 +51,11 @@ export class GamesService {
       throw new BadRequestException('El balance inicial no puede ser negativo');
     }
 
+    const maxTransfer = createGameDto.maxTransfer ?? 500;
+    if (maxTransfer < 5 || maxTransfer > 500) {
+      throw new BadRequestException('La transferencia máxima debe estar entre 5 y 500');
+    }
+
     // Generar PIN único
     let pin = this.generatePin();
     let existingGame = await this.gamesRepository.findByPin(pin);
@@ -75,7 +80,9 @@ export class GamesService {
       description: createGameDto.description,
       initialBalance: createGameDto.initialBalance,
       maxPlayers: createGameDto.maxPlayers,
+      maxTransfer,
       location: createGameDto.location,
+      hasCommonFund: createGameDto.hasCommonFund,
     });
 
     // Agregar al creador como primer jugador

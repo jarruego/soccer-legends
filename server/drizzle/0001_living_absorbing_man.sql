@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "has_common_fund" boolean DEFAULT true NOT NULL;

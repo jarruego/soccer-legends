@@ -42,6 +42,38 @@ export class TransferToBankDto {
 }
 
 /**
+ * DTO para transferencia al Fondo Común
+ */
+export class TransferToCommonFundDto {
+  @IsUUID()
+  gameId!: string;
+
+  @IsNumber()
+  @Min(0)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+/**
+ * DTO para solicitar el Fondo Común
+ */
+export class RequestCommonFundClaimDto {
+  @IsUUID()
+  gameId!: string;
+}
+
+/**
+ * DTO para resolver una solicitud del Fondo Común
+ */
+export class ResolveCommonFundClaimDto {
+  @IsUUID()
+  claimId!: string;
+}
+
+/**
  * DTO para retirada de la banca
  */
 export class WithdrawFromBankDto {

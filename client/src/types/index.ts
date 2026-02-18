@@ -29,7 +29,9 @@ export interface Game {
   status: 'pending' | 'active' | 'finished';
   initialBalance: string;
   maxPlayers: number;
+  maxTransfer: number;
   location: string | null;
+  hasCommonFund: boolean;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -57,9 +59,25 @@ export interface Transaction {
   fromUserId: string | null;
   toUserId: string | null;
   amount: string;
-  type: 'player_to_player' | 'player_to_bank' | 'bank_to_player';
+  type:
+    | 'player_to_player'
+    | 'player_to_bank'
+    | 'bank_to_player'
+    | 'player_to_common_fund'
+    | 'common_fund_to_player';
   description: string | null;
   createdAt: Date;
+}
+
+export interface CommonFundClaim {
+  id: string;
+  gameId: string;
+  requesterUserId: string;
+  requesterUsername?: string;
+  requesterAvatar?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  resolvedAt?: Date | null;
 }
 
 // Resumen financiero
@@ -72,10 +90,13 @@ export interface FinancialSummary {
     avatar: string | null;
     balance: number;
   }>;
+  hasCommonFund: boolean;
   bankBalance: number;
+  commonFundBalance: number;
   totalBalance: number;
   playerCount: number;
   maxPlayers: number;
+  maxTransfer: number;
 }
 
 // API Error

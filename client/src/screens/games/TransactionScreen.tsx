@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { useNavigation, NavigationProp, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { AppHeader, Button } from '@components/index';
@@ -23,12 +23,14 @@ import { gamesService } from '@services/games.service';
 import { transactionsService } from '@services/transactions.service';
 import { commonStyles } from '../../styles/common';
 import { Colors, Spacing } from '../../styles/theme';
-import type { GameDetail, GamePlayer } from '@/types';
+import type { GameDetail } from '@/types';
 import type { RootStackParamList } from '../../navigation/navigation-types';
-import { formatMillions, sanitizeDecimalInput } from '../../utils/currency';
+import { formatMillions } from '../../utils/currency';
 
-type TransactionType = 'player' | 'bank' | 'give';
+type TransactionType = 'player' | 'bank' | 'commonFund' | 'give';
 type Step = 'type' | 'select' | 'form';
+const SLIDER_STEP = 5;
+const SliderComponent = Slider as unknown as React.ComponentType<any>;
 
 export function TransactionScreen(): React.ReactElement {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -41,8 +43,7 @@ export function TransactionScreen(): React.ReactElement {
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null);
   const [transactionType, setTransactionType] = useState<TransactionType | null>(null);
   const [recipientId, setRecipientId] = useState<string | null>(null);
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,12 +105,63 @@ export function TransactionScreen(): React.ReactElement {
         ?.currentBalance || '0'
     ) || 0;
 
-  const transferAmount = parseFloat(amount) || 0;
-  const isValidAmount = transferAmount > 0 && transferAmount <= currentPlayerBalance;
+  const configuredMaxTransfer = Math.max(
+    SLIDER_STEP,
+    Math.min(gameDetail?.maxTransfer ?? 500, 500),
+  );
+  const limitByBalance = Math.max(0, Math.floor(currentPlayerBalance / SLIDER_STEP) * SLIDER_STEP);
+  const amountLimit =
+    transactionType === 'give'
+      ? configuredMaxTransfer
+      : Math.min(configuredMaxTransfer, limitByBalance);
+  const transferAmount = amount;
+  const isValidAmount = transferAmount > 0 && transferAmount <= amountLimit;
+  const noAvailableAmount = amountLimit < SLIDER_STEP;
+  const sliderMax = noAvailableAmount ? SLIDER_STEP : amountLimit;
+  const displayBalance =
+    transactionType === 'give'
+      ? currentPlayerBalance + transferAmount
+      : Math.max(0, currentPlayerBalance - transferAmount);
+
+  useEffect(() => {
+    if (amount > amountLimit) {
+      setAmount(amountLimit);
+    }
+  }, [amount, amountLimit]);
+
+  const renderAmountSlider = () => (
+    <View>
+      <View
+        style={{
+          borderWidth: 1,
+          borderColor: Colors.gray200,
+          borderRadius: 8,
+          paddingHorizontal: Spacing.md,
+          paddingVertical: Spacing.md,
+          backgroundColor: Colors.white,
+          marginBottom: Spacing.md,
+        }}
+      >
+        <SliderComponent
+          minimumValue={0}
+          maximumValue={sliderMax}
+          step={SLIDER_STEP}
+          value={transferAmount}
+          onValueChange={(value: number) => setAmount(Number(value))}
+          minimumTrackTintColor={Colors.primary}
+          maximumTrackTintColor={Colors.gray200}
+          thumbTintColor={Colors.primary}
+          disabled={isSubmitting || noAvailableAmount}
+          style={{ width: '100%', height: 36 }}
+        />
+      </View>
+    </View>
+  );
 
   const handleSelectType = (type: TransactionType) => {
     setTransactionType(type);
-    if (type === 'bank') {
+    setAmount(0);
+    if (type === 'bank' || type === 'commonFund') {
       setStep('form');
       return;
     }
@@ -118,8 +170,7 @@ export function TransactionScreen(): React.ReactElement {
 
   const handleSelectRecipient = (playerId: string) => {
     setRecipientId(playerId);
-    setAmount('');
-    setDescription('');
+    setAmount(0);
     setStep('form');
   };
 
@@ -135,7 +186,6 @@ export function TransactionScreen(): React.ReactElement {
         gameId: gameId!,
         toUserId: recipientId,
         amount: transferAmount,
-        description: description.trim() || undefined,
       });
 
       await handleSuccess(`Has transferido ${formatMillions(transferAmount)}`);
@@ -157,10 +207,30 @@ export function TransactionScreen(): React.ReactElement {
       await transactionsService.transferToBank({
         gameId: gameId!,
         amount: transferAmount,
-        description: description.trim() || undefined,
       });
 
       await handleSuccess(`Has transferido ${formatMillions(transferAmount)} a la banca`);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo realizar la transferencia');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTransferToCommonFund = async () => {
+    if (!isValidAmount) {
+      Alert.alert('Error', 'Verifica el monto');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await transactionsService.transferToCommonFund({
+        gameId: gameId!,
+        amount: transferAmount,
+      });
+
+      await handleSuccess(`Has aportado ${formatMillions(transferAmount)} al Fondo Común`);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'No se pudo realizar la transferencia');
     } finally {
@@ -180,7 +250,6 @@ export function TransactionScreen(): React.ReactElement {
         gameId: gameId!,
         toUserId: recipientId,
         amount: transferAmount,
-        description: description.trim() || undefined,
       });
 
       await handleSuccess(`Has dado ${formatMillions(transferAmount)} a ${selectedPlayer?.username}`);
@@ -195,8 +264,7 @@ export function TransactionScreen(): React.ReactElement {
     setStep('type');
     setTransactionType(null);
     setRecipientId(null);
-    setAmount('');
-    setDescription('');
+    setAmount(0);
   };
 
   const handleSuccess = async (message: string) => {
@@ -245,14 +313,12 @@ export function TransactionScreen(): React.ReactElement {
         >
           {/* Saldo actual */}
           <View style={commonStyles.cardSmall}>
-            <Text style={commonStyles.cardTitle}>Tu Saldo</Text>
             <View style={commonStyles.balanceBox}>
               <Text style={commonStyles.balanceLabel}>Disponible</Text>
               <Text style={commonStyles.balanceValue}>
-                {formatMillions(currentPlayerBalance)}
+                {formatMillions(displayBalance)}
               </Text>
             </View>
-            <Text style={commonStyles.textSmall}>Partida: {gameDetail.name}</Text>
           </View>
 
           {/* Paso 1: Seleccionar tipo de transacción */}
@@ -284,6 +350,20 @@ export function TransactionScreen(): React.ReactElement {
                   </View>
                   <Text style={commonStyles.selectArrow}>→</Text>
                 </TouchableOpacity>
+
+                {/* Transferir al Fondo Común */}
+                {gameDetail.hasCommonFund && (
+                  <TouchableOpacity
+                    style={[commonStyles.playerButton, { marginBottom: Spacing.md }]}
+                    onPress={() => handleSelectType('commonFund')}
+                  >
+                    <View>
+                      <Text style={[commonStyles.text, { fontWeight: '600' }]}>🎯 Aportar al Fondo Común</Text>
+                      <Text style={commonStyles.textSmall}>Añade dinero al fondo de la partida</Text>
+                    </View>
+                    <Text style={commonStyles.selectArrow}>→</Text>
+                  </TouchableOpacity>
+                )}
 
                 {/* Dar dinero (solo creador) */}
                 {isCreator && (
@@ -408,40 +488,18 @@ export function TransactionScreen(): React.ReactElement {
               </View>
 
               <View style={commonStyles.formSection}>
-                <Text style={commonStyles.label}>Monto a transferir</Text>
-                <View style={commonStyles.amountInputContainer}>
-                  <Text style={commonStyles.currencySymbol}>M€</Text>
-                  <TextInput
-                    style={commonStyles.amountInput}
-                    placeholder="0"
-                    keyboardType="number-pad"
-                    value={amount}
-                    onChangeText={(value) => setAmount(sanitizeDecimalInput(value))}
-                    editable={!isSubmitting}
-                    placeholderTextColor={Colors.gray400}
-                  />
-                </View>
+                {renderAmountSlider()}
 
-                {amount && !isValidAmount && (
+                {(transferAmount > 0 || noAvailableAmount) && !isValidAmount && (
                   <Text style={commonStyles.error}>
-                    {transferAmount > currentPlayerBalance
+                    {noAvailableAmount
+                      ? 'No tienes saldo suficiente para transferir en tramos de 5 M€'
+                      : transferAmount > amountLimit
                       ? 'Saldo insuficiente'
                       : 'Monto inválido'}
                   </Text>
                 )}
 
-                <Text style={[commonStyles.label, { marginTop: 16 }]}>
-                  Descripción (opcional)
-                </Text>
-                <TextInput
-                  style={[commonStyles.input, commonStyles.descriptionInput]}
-                  placeholder="Ej: Pago de apuesta"
-                  value={description}
-                  onChangeText={setDescription}
-                  editable={!isSubmitting}
-                  multiline
-                  placeholderTextColor={Colors.gray400}
-                />
               </View>
 
               {/* Botones de acción */}
@@ -502,40 +560,18 @@ export function TransactionScreen(): React.ReactElement {
               </View>
 
               <View style={commonStyles.formSection}>
-                <Text style={commonStyles.label}>Monto a pagar</Text>
-                <View style={commonStyles.amountInputContainer}>
-                  <Text style={commonStyles.currencySymbol}>M€</Text>
-                  <TextInput
-                    style={commonStyles.amountInput}
-                    placeholder="0"
-                    keyboardType="number-pad"
-                    value={amount}
-                    onChangeText={(value) => setAmount(sanitizeDecimalInput(value))}
-                    editable={!isSubmitting}
-                    placeholderTextColor={Colors.gray400}
-                  />
-                </View>
+                {renderAmountSlider()}
 
-                {amount && !isValidAmount && (
+                {(transferAmount > 0 || noAvailableAmount) && !isValidAmount && (
                   <Text style={commonStyles.error}>
-                    {transferAmount > currentPlayerBalance
+                    {noAvailableAmount
+                      ? 'No tienes saldo suficiente para pagar en tramos de 5 M€'
+                      : transferAmount > amountLimit
                       ? 'Saldo insuficiente'
                       : 'Monto inválido'}
                   </Text>
                 )}
 
-                <Text style={[commonStyles.label, { marginTop: 16 }]}>
-                  Descripción (opcional)
-                </Text>
-                <TextInput
-                  style={[commonStyles.input, commonStyles.descriptionInput]}
-                  placeholder="Descripción..."
-                  value={description}
-                  onChangeText={setDescription}
-                  editable={!isSubmitting}
-                  multiline
-                  placeholderTextColor={Colors.gray400}
-                />
               </View>
 
               <View style={commonStyles.cardSmall}>
@@ -595,36 +631,12 @@ export function TransactionScreen(): React.ReactElement {
               </View>
 
               <View style={commonStyles.formSection}>
-                <Text style={commonStyles.label}>Monto a dar</Text>
-                <View style={commonStyles.amountInputContainer}>
-                  <Text style={commonStyles.currencySymbol}>M€</Text>
-                  <TextInput
-                    style={commonStyles.amountInput}
-                    placeholder="0"
-                    keyboardType="number-pad"
-                    value={amount}
-                    onChangeText={(value) => setAmount(sanitizeDecimalInput(value))}
-                    editable={!isSubmitting}
-                    placeholderTextColor={Colors.gray400}
-                  />
-                </View>
+                {renderAmountSlider()}
 
-                {amount && amount !== '' && transferAmount <= 0 && (
-                  <Text style={commonStyles.error}>Monto debe ser mayor a 0</Text>
+                {noAvailableAmount && (
+                  <Text style={commonStyles.error}>No se puede transferir menos de 5 M€</Text>
                 )}
 
-                <Text style={[commonStyles.label, { marginTop: 16 }]}>
-                  Descripción (opcional)
-                </Text>
-                <TextInput
-                  style={[commonStyles.input, commonStyles.descriptionInput]}
-                  placeholder="Descripción..."
-                  value={description}
-                  onChangeText={setDescription}
-                  editable={!isSubmitting}
-                  multiline
-                  placeholderTextColor={Colors.gray400}
-                />
               </View>
 
               <View style={commonStyles.cardSmall}>
@@ -640,6 +652,77 @@ export function TransactionScreen(): React.ReactElement {
                   onPress={handleGiveFromBank}
                   loading={isSubmitting}
                   disabled={transferAmount <= 0 || isSubmitting}
+                />
+
+                <TouchableOpacity
+                  style={commonStyles.cancelButton}
+                  onPress={() => resetForm()}
+                  disabled={isSubmitting}
+                >
+                  <Text style={commonStyles.cancelButtonText}>← Cambiar tipo</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Paso 3: Confirmar transferencia al Fondo Común */}
+          {step === 'form' && transactionType === 'commonFund' && (
+            <View style={commonStyles.cardSmall}>
+              <View style={commonStyles.flowIndicator}>
+                <View style={commonStyles.flowStep}>
+                  <Text style={commonStyles.flowStepLabel}>De</Text>
+                  <View style={commonStyles.flowAvatar}>
+                    <Text style={commonStyles.flowAvatarText}>
+                      {currentUser?.username?.[0]?.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={commonStyles.flowName}>{currentUser?.username}</Text>
+                </View>
+
+                <View style={commonStyles.flowArrow}>
+                  <Text style={commonStyles.arrowText}>→</Text>
+                </View>
+
+                <View style={commonStyles.flowStep}>
+                  <Text style={commonStyles.flowStepLabel}>Para</Text>
+                  <View style={[commonStyles.flowAvatar, { backgroundColor: Colors.primary }]}> 
+                    <Text style={[commonStyles.flowAvatarText, { color: Colors.white }]}>🎯</Text>
+                  </View>
+                  <Text style={commonStyles.flowName}>Fondo Común</Text>
+                </View>
+              </View>
+
+              <View style={commonStyles.formSection}>
+                {renderAmountSlider()}
+
+                {(transferAmount > 0 || noAvailableAmount) && !isValidAmount && (
+                  <Text style={commonStyles.error}>
+                    {noAvailableAmount
+                      ? 'No tienes saldo suficiente para aportar en tramos de 5 M€'
+                      : transferAmount > amountLimit
+                      ? 'Saldo insuficiente'
+                      : 'Monto inválido'}
+                  </Text>
+                )}
+
+              </View>
+
+              <View style={commonStyles.cardSmall}>
+                <View style={[commonStyles.summaryBox, { borderLeftColor: Colors.primary }]}> 
+                  <Text style={[commonStyles.summaryLabel, { color: Colors.primary }]}>Aportando al Fondo Común</Text>
+                  <Text style={[commonStyles.summaryAmount, { color: Colors.primary }]}>
+                    {formatMillions(transferAmount)}
+                  </Text>
+                  <Text style={commonStyles.summarySubtext}>
+                    Tu saldo será: {formatMillions(currentPlayerBalance - transferAmount)}
+                  </Text>
+                </View>
+
+                <Button
+                  title={isSubmitting ? 'Enviando...' : 'Confirmar Aporte'}
+                  onPress={handleTransferToCommonFund}
+                  loading={isSubmitting}
+                  disabled={!isValidAmount || isSubmitting}
                 />
 
                 <TouchableOpacity

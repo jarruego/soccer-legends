@@ -5,7 +5,7 @@
  */
 
 import { httpClient } from './http-client';
-import type { Transaction, FinancialSummary } from '../types/index';
+import type { Transaction, FinancialSummary, CommonFundClaim } from '../types/index';
 
 export interface TransferData {
   gameId: string;
@@ -15,6 +15,12 @@ export interface TransferData {
 }
 
 export interface TransferToBankData {
+  gameId: string;
+  amount: number;
+  description?: string;
+}
+
+export interface TransferToCommonFundData {
   gameId: string;
   amount: number;
   description?: string;
@@ -40,6 +46,13 @@ class TransactionsService {
    */
   async transferToBank(data: TransferToBankData): Promise<Transaction> {
     return httpClient.post('/transactions/to-bank', data);
+  }
+
+  /**
+    * Transfiere dinero al Fondo Común
+   */
+  async transferToCommonFund(data: TransferToCommonFundData): Promise<Transaction> {
+    return httpClient.post('/transactions/to-common-fund', data);
   }
 
   /**
@@ -72,6 +85,54 @@ class TransactionsService {
    */
   async getBankBalance(gameId: string): Promise<{ bankBalance: number }> {
     return httpClient.get(`/transactions/${gameId}/bank-balance`);
+  }
+
+  /**
+    * Obtiene el balance del Fondo Común
+   */
+  async getCommonFundBalance(gameId: string): Promise<{ commonFundBalance: number }> {
+    return httpClient.get(`/transactions/${gameId}/common-fund-balance`);
+  }
+
+  /**
+   * Solicita quedarse con todo el Fondo Común
+   */
+  async requestCommonFundClaim(
+    gameId: string,
+  ): Promise<{ id: string; status: string; message: string; autoApproved: boolean; amount: number }> {
+    return httpClient.post(`/transactions/${gameId}/common-fund-claims/request`);
+  }
+
+  /**
+   * Obtiene solicitudes pendientes (solo banca)
+   */
+  async getPendingCommonFundClaims(
+    gameId: string,
+  ): Promise<{ claimCount: number; claims: CommonFundClaim[] }> {
+    return httpClient.get(`/transactions/${gameId}/common-fund-claims/pending`);
+  }
+
+  /**
+   * Obtiene mi última solicitud del Fondo Común
+   */
+  async getMyLatestCommonFundClaim(
+    gameId: string,
+  ): Promise<{ claim: CommonFundClaim | null }> {
+    return httpClient.get(`/transactions/${gameId}/common-fund-claims/my-latest`);
+  }
+
+  /**
+   * Aprueba una solicitud del Fondo Común (solo banca)
+   */
+  async approveCommonFundClaim(claimId: string): Promise<{ amount: number; message: string }> {
+    return httpClient.post(`/transactions/common-fund-claims/${claimId}/approve`);
+  }
+
+  /**
+   * Rechaza una solicitud del Fondo Común (solo banca)
+   */
+  async rejectCommonFundClaim(claimId: string): Promise<{ message: string }> {
+    return httpClient.post(`/transactions/common-fund-claims/${claimId}/reject`);
   }
 
   /**

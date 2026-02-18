@@ -15,4 +15,7 @@ export type { GamePlayer, GamePlayerInsert } from './game-players';
 export { transactions, TransactionType } from './transactions';
 export type { Transaction, TransactionInsert } from './transactions';
 
+export { commonFundClaims, CommonFundClaimStatus } from './common-fund-claims';
+export type { CommonFundClaim, CommonFundClaimInsert } from './common-fund-claims';
+
 export { timestamps, uuidId, autoId, foreignUuid, getTimestamps } from './types';

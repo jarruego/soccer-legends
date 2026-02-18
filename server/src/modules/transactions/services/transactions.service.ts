@@ -17,8 +17,13 @@ import {
 } from '@nestjs/common';
 import { TransactionsRepository } from '../repositories/transactions.repository';
 import { GamesRepository } from '@/modules/games/repositories/games.repository';
-import { CreateTransactionDto, TransferToBankDto, WithdrawFromBankDto } from '../dto';
-import { TransactionType, type Transaction } from '@/database/schema';
+import {
+  CreateTransactionDto,
+  TransferToBankDto,
+  TransferToCommonFundDto,
+  WithdrawFromBankDto,
+} from '../dto';
+import { CommonFundClaimStatus, TransactionType, type Transaction } from '@/database/schema';
 
 @Injectable()
 export class TransactionsService {
@@ -162,6 +167,244 @@ export class TransactionsService {
   }
 
   /**
+   * Transferencia de un jugador al Fondo Común
+   */
+  async transferToCommonFund(
+    userId: string,
+    transferToCommonFundDto: TransferToCommonFundDto,
+  ): Promise<Transaction> {
+    const { gameId, amount, description } = transferToCommonFundDto;
+
+    if (amount <= 0) {
+      throw new BadRequestException('El monto debe ser mayor a 0');
+    }
+
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (!game.hasCommonFund) {
+      throw new BadRequestException('Esta partida no tiene Fondo Común habilitado');
+    }
+
+    const isPlayerInGame = await this.gamesRepository.isPlayerInGame(gameId, userId);
+    if (!isPlayerInGame) {
+      throw new BadRequestException('No estás en esta partida');
+    }
+
+    const playerBalance = await this.gamesRepository.getPlayerBalance(gameId, userId);
+    if (playerBalance === null) {
+      throw new NotFoundException('Balance no encontrado');
+    }
+
+    if (playerBalance < amount) {
+      throw new ConflictException(
+        `Saldo insuficiente. Tu balance es ${playerBalance}, intentas enviar ${amount}`,
+      );
+    }
+
+    const newPlayerBalance = playerBalance - amount;
+    await this.gamesRepository.updatePlayerBalance(gameId, userId, newPlayerBalance);
+
+    const transaction = await this.transactionsRepository.create({
+      gameId,
+      fromUserId: userId,
+      toUserId: null,
+      amount,
+      type: TransactionType.PLAYER_TO_COMMON_FUND,
+      description: description || `Aporte al Fondo Común: ${amount}`,
+    });
+
+    return transaction;
+  }
+
+  /**
+   * Solicita quedarse con todo el Fondo Común
+   */
+  async requestCommonFundClaim(userId: string, gameId: string) {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (!game.hasCommonFund) {
+      throw new BadRequestException('Esta partida no tiene Fondo Común habilitado');
+    }
+
+    const isPlayerInGame = await this.gamesRepository.isPlayerInGame(gameId, userId);
+    if (!isPlayerInGame) {
+      throw new BadRequestException('No estás en esta partida');
+    }
+
+    const commonFundBalance = await this.transactionsRepository.calculateCommonFundBalance(gameId);
+    if (commonFundBalance <= 0) {
+      throw new BadRequestException('El Fondo Común está vacío');
+    }
+
+    const existingPending = await this.transactionsRepository.findPendingCommonFundClaimByGame(gameId);
+    if (existingPending) {
+      throw new ConflictException('Ya existe una solicitud pendiente del Fondo Común');
+    }
+
+    const claim = await this.transactionsRepository.createCommonFundClaim(gameId, userId);
+
+    if (game.createdBy === userId) {
+      const requesterBalance = await this.gamesRepository.getPlayerBalance(gameId, userId);
+      if (requesterBalance === null) {
+        throw new NotFoundException('Jugador solicitante no encontrado en la partida');
+      }
+
+      await this.gamesRepository.updatePlayerBalance(gameId, userId, requesterBalance + commonFundBalance);
+
+      await this.transactionsRepository.create({
+        gameId,
+        fromUserId: null,
+        toUserId: userId,
+        amount: commonFundBalance,
+        type: TransactionType.COMMON_FUND_TO_PLAYER,
+        description: `Cobro directo del Fondo Común por la banca: ${commonFundBalance}`,
+      });
+
+      const resolved = await this.transactionsRepository.resolveCommonFundClaim(
+        claim.id,
+        CommonFundClaimStatus.APPROVED,
+        userId,
+      );
+
+      return {
+        ...resolved,
+        autoApproved: true,
+        amount: commonFundBalance,
+      };
+    }
+
+    return {
+      ...claim,
+      autoApproved: false,
+      amount: commonFundBalance,
+    };
+  }
+
+  /**
+   * Obtiene solicitudes pendientes del Fondo Común
+   */
+  async getPendingCommonFundClaims(userId: string, gameId: string) {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (game.createdBy !== userId) {
+      throw new BadRequestException('Solo la banca puede ver solicitudes pendientes');
+    }
+
+    return this.transactionsRepository.findPendingCommonFundClaimsWithUser(gameId);
+  }
+
+  /**
+   * Obtiene la última solicitud del usuario en una partida
+   */
+  async getMyLatestCommonFundClaim(userId: string, gameId: string) {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    const isPlayerInGame = await this.gamesRepository.isPlayerInGame(gameId, userId);
+    if (!isPlayerInGame) {
+      throw new BadRequestException('No estás en esta partida');
+    }
+
+    return this.transactionsRepository.findLatestCommonFundClaimByRequester(gameId, userId);
+  }
+
+  /**
+   * Aprueba una solicitud del Fondo Común y transfiere todo el fondo al solicitante
+   */
+  async approveCommonFundClaim(userId: string, claimId: string) {
+    const claim = await this.transactionsRepository.findCommonFundClaimById(claimId);
+    if (!claim) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    const game = await this.gamesRepository.findById(claim.gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (game.createdBy !== userId) {
+      throw new BadRequestException('Solo la banca puede aprobar solicitudes del Fondo Común');
+    }
+
+    if (claim.status !== CommonFundClaimStatus.PENDING) {
+      throw new ConflictException('La solicitud ya fue resuelta');
+    }
+
+    const commonFundBalance = await this.transactionsRepository.calculateCommonFundBalance(claim.gameId);
+    if (commonFundBalance <= 0) {
+      throw new BadRequestException('No hay saldo en el Fondo Común');
+    }
+
+    const requesterBalance = await this.gamesRepository.getPlayerBalance(claim.gameId, claim.requesterUserId);
+    if (requesterBalance === null) {
+      throw new NotFoundException('Jugador solicitante no encontrado en la partida');
+    }
+
+    await this.gamesRepository.updatePlayerBalance(
+      claim.gameId,
+      claim.requesterUserId,
+      requesterBalance + commonFundBalance,
+    );
+
+    await this.transactionsRepository.create({
+      gameId: claim.gameId,
+      fromUserId: null,
+      toUserId: claim.requesterUserId,
+      amount: commonFundBalance,
+      type: TransactionType.COMMON_FUND_TO_PLAYER,
+      description: `Entrega del Fondo Común: ${commonFundBalance}`,
+    });
+
+    const resolved = await this.transactionsRepository.resolveCommonFundClaim(
+      claim.id,
+      CommonFundClaimStatus.APPROVED,
+      userId,
+    );
+
+    return { claim: resolved, amount: commonFundBalance };
+  }
+
+  /**
+   * Rechaza una solicitud del Fondo Común
+   */
+  async rejectCommonFundClaim(userId: string, claimId: string) {
+    const claim = await this.transactionsRepository.findCommonFundClaimById(claimId);
+    if (!claim) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    const game = await this.gamesRepository.findById(claim.gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (game.createdBy !== userId) {
+      throw new BadRequestException('Solo la banca puede rechazar solicitudes del Fondo Común');
+    }
+
+    if (claim.status !== CommonFundClaimStatus.PENDING) {
+      throw new ConflictException('La solicitud ya fue resuelta');
+    }
+
+    return this.transactionsRepository.resolveCommonFundClaim(
+      claim.id,
+      CommonFundClaimStatus.REJECTED,
+      userId,
+    );
+  }
+
+  /**
    * Retirada de la banca para un jugador
    *
    * Solo el creador de la partida puede hacer esto
@@ -275,6 +518,22 @@ export class TransactionsService {
   }
 
   /**
+   * Obtiene el balance del Fondo Común en una partida
+   */
+  async getCommonFundBalance(gameId: string): Promise<number> {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (!game.hasCommonFund) {
+      return 0;
+    }
+
+    return this.transactionsRepository.calculateCommonFundBalance(gameId);
+  }
+
+  /**
    * Obtiene el resumen financiero de una partida
    *
    * @param gameId - ID de la partida
@@ -292,6 +551,9 @@ export class TransactionsService {
 
     // Calcular balance de la banca
     const bankBalance = await this.transactionsRepository.calculateBankBalance(gameId);
+    const commonFundBalance = game.hasCommonFund
+      ? await this.transactionsRepository.calculateCommonFundBalance(gameId)
+      : 0;
 
     // Calcular total en circulación
     const totalPlayerBalance = playersWithData.reduce(
@@ -309,10 +571,13 @@ export class TransactionsService {
         avatar: p.avatar,
         balance: parseFloat(p.currentBalance),
       })),
+      hasCommonFund: game.hasCommonFund,
       bankBalance,
-      totalBalance: totalPlayerBalance + bankBalance,
+      commonFundBalance,
+      totalBalance: totalPlayerBalance + bankBalance + commonFundBalance,
       playerCount: playersWithData.length,
       maxPlayers: game.maxPlayers,
+      maxTransfer: game.maxTransfer,
     };
   }
 }

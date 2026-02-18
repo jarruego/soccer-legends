@@ -8,11 +8,13 @@
  * 1. De jugador a jugador (fromUserId -> toUserId)
  * 2. De jugador a banca (toUserId = null, toBankBalance se incrementa)
  * 3. De banca a jugador (fromUserId = null, se decrementa bankBalance)
+ * 4. De jugador al Fondo Común (toUserId = null)
+ * 5. De fondo común a jugador (fromUserId = null)
  *
  * Relaciones:
  * - gameId -> games.id (en qué partida ocurrió)
  * - fromUserId -> users.id (quién envía, puede ser null si es de la banca)
- * - toUserId -> users.id (quién recibe, puede ser null si es hacia la banca)
+ * - toUserId -> users.id (quién recibe, puede ser null si es hacia la banca o Fondo Común)
  */
 
 import { pgTable, uuid, decimal, text, timestamp, foreignKey, varchar, index } from 'drizzle-orm/pg-core';
@@ -42,7 +44,7 @@ export const transactions = pgTable(
     description: text('description'),
 
     // Tipo de transacción para facilitar consultas
-    // Valores: "player_to_player", "player_to_bank", "bank_to_player"
+    // Valores: "player_to_player", "player_to_bank", "bank_to_player", "player_to_common_fund", "common_fund_to_player"
     type: varchar('type', { length: 30 }).notNull(),
 
     // Timestamps automáticos
@@ -93,4 +95,6 @@ export enum TransactionType {
   PLAYER_TO_PLAYER = 'player_to_player',
   PLAYER_TO_BANK = 'player_to_bank',
   BANK_TO_PLAYER = 'bank_to_player',
+  PLAYER_TO_COMMON_FUND = 'player_to_common_fund',
+  COMMON_FUND_TO_PLAYER = 'common_fund_to_player',
 }

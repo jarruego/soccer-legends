@@ -8,6 +8,27 @@
       "when": 1771195922679,
       "tag": "0000_overconfident_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771429949070,
+      "tag": "0001_living_absorbing_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771430595606,
+      "tag": "0002_modern_betty_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771432619946,
+      "tag": "0003_amazing_gambit",
+      "breakpoints": true
     }
   ]
 }

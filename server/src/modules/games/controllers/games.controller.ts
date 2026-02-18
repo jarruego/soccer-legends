@@ -72,7 +72,9 @@ export class GamesController {
       status: game.status,
       playerCount: game.playerCount,
       maxPlayers: game.maxPlayers,
+      maxTransfer: game.maxTransfer,
       location: game.location,
+      hasCommonFund: game.hasCommonFund,
     }));
   }
 
@@ -92,6 +94,8 @@ export class GamesController {
       id: game.id,
       pin: game.pin,
       name: game.name,
+      maxTransfer: game.maxTransfer,
+      hasCommonFund: game.hasCommonFund,
       message: `Partida "${game.name}" creada. PIN: ${game.pin}`,
     };
   }
@@ -113,6 +117,8 @@ export class GamesController {
       status: game.status,
       pin: game.pin,
       initialBalance: game.initialBalance,
+      maxTransfer: game.maxTransfer,
+      hasCommonFund: game.hasCommonFund,
       playerCount: game.playerCount,
       maxPlayers: game.maxPlayers,
       createdAt: game.createdAt,
@@ -139,7 +145,9 @@ export class GamesController {
       status: game.status,
       initialBalance: game.initialBalance,
       maxPlayers: game.maxPlayers,
+      maxTransfer: game.maxTransfer,
       location: game.location,
+      hasCommonFund: game.hasCommonFund,
       createdBy: game.createdBy,
       playerCount: players.length,
       players: players.map((p) => ({

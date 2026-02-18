@@ -12,7 +12,9 @@ export interface CreateGameData {
   description?: string;
   initialBalance: number;
   maxPlayers: number;
+  maxTransfer?: number;
   location?: string;
+  hasCommonFund?: boolean;
 }
 
 export interface JoinGameData {
