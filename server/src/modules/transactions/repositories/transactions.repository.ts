@@ -500,5 +500,16 @@ export class TransactionsRepository {
 
         return result.length > 0;
     }
+    
+    /**
+     * Obtiene todas las transacciones de un usuario (todas las partidas)
+     */
+    async findAllByUser(userId: string): Promise<Transaction[]> {
+        return db
+            .select()
+            .from(transactions)
+            .where(or(eq(transactions.fromUserId, userId), eq(transactions.toUserId, userId)))
+            .orderBy(desc(transactions.createdAt));
+    }    
 }
 

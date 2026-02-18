@@ -736,4 +736,10 @@ export class TransactionsService {
       maxTransfer: game.maxTransfer,
     };
   }
+    /**
+   * Obtiene todas las transacciones de un usuario (todas las partidas)
+   */
+  async getAllUserTransactions(userId: string): Promise<Transaction[]> {
+    return this.transactionsRepository.findAllByUser(userId);
+  }
 }

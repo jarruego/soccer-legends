@@ -182,6 +182,13 @@ class TransactionsService {
   async getFinancialSummary(gameId: string): Promise<FinancialSummary> {
     return httpClient.get(`/transactions/${gameId}/summary`);
   }
+
+   /**
+   * Obtiene todas las transacciones de un usuario (todas las partidas)
+   */
+  async getUserTransactions(userId: string): Promise<Transaction[]> {
+    return httpClient.get(`/users/${userId}/transactions`);
+  }
 }
 
 export const transactionsService = new TransactionsService();
