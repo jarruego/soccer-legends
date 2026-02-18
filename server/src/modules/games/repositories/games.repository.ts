@@ -22,6 +22,7 @@ export class GamesRepository {
     initialBalance: number;
     maxPlayers: number;
     maxTransfer?: number;
+    seasonalCollection?: number;
     location?: string;
     hasCommonFund?: boolean;
   }): Promise<Game> {
@@ -35,6 +36,7 @@ export class GamesRepository {
         initialBalance: gameData.initialBalance.toString(),
         maxPlayers: gameData.maxPlayers,
         maxTransfer: gameData.maxTransfer ?? 500,
+        seasonalCollection: gameData.seasonalCollection ?? 30,
         location: gameData.location || null,
         hasCommonFund: gameData.hasCommonFund ?? true,
         status: 'pending',

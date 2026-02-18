@@ -43,8 +43,8 @@ export class GamesService {
    * @returns Partida creada con PIN
    */
   async createGame(userId: string, createGameDto: CreateGameDto): Promise<Game> {
-    if (createGameDto.maxPlayers < 2 || createGameDto.maxPlayers > 4) {
-      throw new BadRequestException('El número de jugadores debe estar entre 2 y 4');
+    if (createGameDto.maxPlayers < 2 || createGameDto.maxPlayers > 8) {
+      throw new BadRequestException('El número de jugadores debe estar entre 2 y 8');
     }
 
     if (createGameDto.initialBalance < 0) {
@@ -54,6 +54,11 @@ export class GamesService {
     const maxTransfer = createGameDto.maxTransfer ?? 500;
     if (maxTransfer < 5 || maxTransfer > 500) {
       throw new BadRequestException('La transferencia máxima debe estar entre 5 y 500');
+    }
+
+    const seasonalCollection = createGameDto.seasonalCollection ?? 30;
+    if (seasonalCollection < 0 || seasonalCollection > 500) {
+      throw new BadRequestException('La recaudación por temporada debe estar entre 0 y 500');
     }
 
     // Generar PIN único
@@ -81,6 +86,7 @@ export class GamesService {
       initialBalance: createGameDto.initialBalance,
       maxPlayers: createGameDto.maxPlayers,
       maxTransfer,
+      seasonalCollection,
       location: createGameDto.location,
       hasCommonFund: createGameDto.hasCommonFund,
     });

@@ -23,7 +23,12 @@ import {
   TransferToCommonFundDto,
   WithdrawFromBankDto,
 } from '../dto';
-import { CommonFundClaimStatus, TransactionType, type Transaction } from '@/database/schema';
+import {
+  CommonFundClaimStatus,
+  SeasonalCollectionClaimStatus,
+  TransactionType,
+  type Transaction,
+} from '@/database/schema';
 
 @Injectable()
 export class TransactionsService {
@@ -284,6 +289,157 @@ export class TransactionsService {
       autoApproved: false,
       amount: commonFundBalance,
     };
+  }
+
+  /**
+   * Solicita recaudacion por temporada
+   */
+  async requestSeasonalCollectionClaim(userId: string, gameId: string) {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    const isPlayerInGame = await this.gamesRepository.isPlayerInGame(gameId, userId);
+    if (!isPlayerInGame) {
+      throw new BadRequestException('No estás en esta partida');
+    }
+
+    if (game.seasonalCollection <= 0) {
+      throw new BadRequestException('La recaudación por temporada es 0');
+    }
+
+    const existingPending = await this.transactionsRepository.findPendingSeasonalCollectionClaimByRequester(
+      gameId,
+      userId,
+    );
+    if (existingPending) {
+      throw new ConflictException('Ya tienes una solicitud pendiente');
+    }
+
+    const claim = await this.transactionsRepository.createSeasonalCollectionClaim(
+      gameId,
+      userId,
+      game.seasonalCollection,
+    );
+
+    return {
+      ...claim,
+      amount: game.seasonalCollection,
+    };
+  }
+
+  /**
+   * Obtiene solicitudes pendientes de recaudacion (solo banca)
+   */
+  async getPendingSeasonalCollectionClaims(userId: string, gameId: string) {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (game.createdBy !== userId) {
+      throw new BadRequestException('Solo la banca puede ver solicitudes pendientes');
+    }
+
+    return this.transactionsRepository.findPendingSeasonalCollectionClaimsWithUser(gameId);
+  }
+
+  /**
+   * Obtiene la ultima solicitud de recaudacion del usuario
+   */
+  async getMyLatestSeasonalCollectionClaim(userId: string, gameId: string) {
+    const game = await this.gamesRepository.findById(gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    const isPlayerInGame = await this.gamesRepository.isPlayerInGame(gameId, userId);
+    if (!isPlayerInGame) {
+      throw new BadRequestException('No estás en esta partida');
+    }
+
+    return this.transactionsRepository.findLatestSeasonalCollectionClaimByRequester(gameId, userId);
+  }
+
+  /**
+   * Aprueba una solicitud de recaudacion por temporada
+   */
+  async approveSeasonalCollectionClaim(userId: string, claimId: string) {
+    const claim = await this.transactionsRepository.findSeasonalCollectionClaimById(claimId);
+    if (!claim) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    const game = await this.gamesRepository.findById(claim.gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (game.createdBy !== userId) {
+      throw new BadRequestException('Solo la banca puede aprobar solicitudes');
+    }
+
+    if (claim.status !== SeasonalCollectionClaimStatus.PENDING) {
+      throw new ConflictException('La solicitud ya fue resuelta');
+    }
+
+    const requesterBalance = await this.gamesRepository.getPlayerBalance(claim.gameId, claim.requesterUserId);
+    if (requesterBalance === null) {
+      throw new NotFoundException('Jugador solicitante no encontrado en la partida');
+    }
+
+    await this.gamesRepository.updatePlayerBalance(
+      claim.gameId,
+      claim.requesterUserId,
+      requesterBalance + claim.amount,
+    );
+
+    await this.transactionsRepository.create({
+      gameId: claim.gameId,
+      fromUserId: null,
+      toUserId: claim.requesterUserId,
+      amount: claim.amount,
+      type: TransactionType.BANK_TO_PLAYER,
+      description: `Recaudación por temporada: ${claim.amount}`,
+    });
+
+    const resolved = await this.transactionsRepository.resolveSeasonalCollectionClaim(
+      claim.id,
+      SeasonalCollectionClaimStatus.APPROVED,
+      userId,
+    );
+
+    return { claim: resolved, amount: claim.amount };
+  }
+
+  /**
+   * Rechaza una solicitud de recaudacion por temporada
+   */
+  async rejectSeasonalCollectionClaim(userId: string, claimId: string) {
+    const claim = await this.transactionsRepository.findSeasonalCollectionClaimById(claimId);
+    if (!claim) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    const game = await this.gamesRepository.findById(claim.gameId);
+    if (!game) {
+      throw new NotFoundException('Partida no encontrada');
+    }
+
+    if (game.createdBy !== userId) {
+      throw new BadRequestException('Solo la banca puede rechazar solicitudes');
+    }
+
+    if (claim.status !== SeasonalCollectionClaimStatus.PENDING) {
+      throw new ConflictException('La solicitud ya fue resuelta');
+    }
+
+    return this.transactionsRepository.resolveSeasonalCollectionClaim(
+      claim.id,
+      SeasonalCollectionClaimStatus.REJECTED,
+      userId,
+    );
   }
 
   /**

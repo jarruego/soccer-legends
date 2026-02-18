@@ -13,6 +13,7 @@ export interface CreateGameData {
   initialBalance: number;
   maxPlayers: number;
   maxTransfer?: number;
+  seasonalCollection?: number;
   location?: string;
   hasCommonFund?: boolean;
 }

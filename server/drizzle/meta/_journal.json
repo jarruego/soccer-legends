@@ -29,6 +29,27 @@
       "when": 1771432619946,
       "tag": "0003_amazing_gambit",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771434331880,
+      "tag": "0004_happy_mordo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771434834331,
+      "tag": "0005_abandoned_corsair",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771435489801,
+      "tag": "0006_magenta_cable",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "games" ALTER COLUMN "initial_balance" SET DEFAULT '130.00';

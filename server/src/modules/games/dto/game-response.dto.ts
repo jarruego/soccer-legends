@@ -15,6 +15,7 @@ export class GameResponseDto {
   initialBalance!: string;
   maxPlayers!: number;
   maxTransfer!: number;
+  seasonalCollection!: number;
   status!: string;
   location!: string | null;
   hasCommonFund!: boolean;

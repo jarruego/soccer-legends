@@ -1,0 +1,1 @@
+ALTER TABLE "games" ALTER COLUMN "max_players" SET DEFAULT 2;

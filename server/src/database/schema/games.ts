@@ -39,13 +39,16 @@ export const games = pgTable(
     description: text('description'),
 
     // Cantidad de dinero inicial que tiene cada jugador
-    initialBalance: decimal('initial_balance', { precision: 10, scale: 2 }).notNull().default('0.00'),
+    initialBalance: decimal('initial_balance', { precision: 10, scale: 2 }).notNull().default('130.00'),
 
-    // Número de jugadores que pueden participar (2-4)
-    maxPlayers: integer('max_players').notNull().default(4),
+    // Número de jugadores que pueden participar (2-8)
+    maxPlayers: integer('max_players').notNull().default(2),
 
     // Máximo de transferencia permitida por operación (en millones)
     maxTransfer: integer('max_transfer').notNull().default(500),
+
+    // Recaudación por temporada (por jugador)
+    seasonalCollection: integer('seasonal_collection').notNull().default(30),
 
     // Estado actual de la partida
     status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, active, finished

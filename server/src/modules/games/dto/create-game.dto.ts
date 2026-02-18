@@ -19,18 +19,24 @@ export class CreateGameDto {
 
   @IsNumber()
   @Min(0)
-  initialBalance: number = 0;
+  initialBalance: number = 130;
 
   @IsNumber()
   @Min(2)
-  @Max(4)
-  maxPlayers: number = 4;
+  @Max(8)
+  maxPlayers: number = 2;
 
   @IsOptional()
   @IsNumber()
   @Min(5)
   @Max(500)
   maxTransfer?: number = 500;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(500)
+  seasonalCollection?: number = 30;
 
   @IsOptional()
   @IsString()

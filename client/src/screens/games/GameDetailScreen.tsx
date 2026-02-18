@@ -20,7 +20,7 @@ import { AppHeader, Button } from '@components/index';
 import { useAuthStore } from '@store/auth-store';
 import { gamesService } from '@services/games.service';
 import { transactionsService } from '@services/transactions.service';
-import type { CommonFundClaim, GameDetail } from '@/types';
+import type { CommonFundClaim, GameDetail, SeasonalCollectionClaim } from '@/types';
 import type { RootStackParamList } from '../../navigation/navigation-types';
 import { commonStyles } from '../../styles/common';
 import { Colors, Spacing } from '../../styles/theme';
@@ -35,7 +35,6 @@ export function GameDetailScreen(): React.ReactElement {
   const [gameDetail, setGameDetail] = useState<GameDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletedMessage, setDeletedMessage] = useState<string | null>(null);
 
@@ -44,14 +43,19 @@ export function GameDetailScreen(): React.ReactElement {
   const [myLatestCommonFundClaim, setMyLatestCommonFundClaim] = useState<CommonFundClaim | null>(null);
   const [isRequestingCommonFund, setIsRequestingCommonFund] = useState(false);
   const [isResolvingClaimId, setIsResolvingClaimId] = useState<string | null>(null);
+  const [pendingSeasonalClaims, setPendingSeasonalClaims] = useState<SeasonalCollectionClaim[]>([]);
+  const [isResolvingSeasonalClaimId, setIsResolvingSeasonalClaimId] = useState<string | null>(null);
+  const [myLatestSeasonalClaim, setMyLatestSeasonalClaim] = useState<SeasonalCollectionClaim | null>(null);
   const [isGameInfoModalVisible, setIsGameInfoModalVisible] = useState(false);
   const [activeBankClaimId, setActiveBankClaimId] = useState<string | null>(null);
+  const [activeSeasonalClaimId, setActiveSeasonalClaimId] = useState<string | null>(null);
   const isCreator = currentUser?.id === gameDetail?.createdBy;
 
   const hasNotifiedDeleted = useRef(false);
   const isGameDeleted = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastNotifiedClaimRef = useRef<string | null>(null);
+  const dismissedSeasonalClaimRef = useRef<string | null>(null);
 
   const notifyClaimResolution = useCallback((claim: CommonFundClaim | null) => {
     if (!claim || claim.status === 'pending') return;
@@ -95,6 +99,17 @@ export function GameDetailScreen(): React.ReactElement {
   );
 
   const activeBankClaim = pendingCommonFundClaims.find((claim) => claim.id === activeBankClaimId) || null;
+  const activeSeasonalClaim = pendingSeasonalClaims.find((claim) => claim.id === activeSeasonalClaimId) || null;
+  useEffect(() => {
+    if (!myLatestSeasonalClaim || myLatestSeasonalClaim.status === 'pending') return;
+
+    const timer = setTimeout(() => {
+      dismissedSeasonalClaimRef.current = myLatestSeasonalClaim.id;
+      setMyLatestSeasonalClaim(null);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [myLatestSeasonalClaim]);
 
   useEffect(() => {
     if (!isCreator) {
@@ -111,6 +126,22 @@ export function GameDetailScreen(): React.ReactElement {
       setActiveBankClaimId(pendingCommonFundClaims[0].id);
     }
   }, [isCreator, pendingCommonFundClaims, activeBankClaimId]);
+
+  useEffect(() => {
+    if (!isCreator) {
+      setActiveSeasonalClaimId(null);
+      return;
+    }
+
+    if (pendingSeasonalClaims.length === 0) {
+      setActiveSeasonalClaimId(null);
+      return;
+    }
+
+    if (!activeSeasonalClaimId || !pendingSeasonalClaims.some((claim) => claim.id === activeSeasonalClaimId)) {
+      setActiveSeasonalClaimId(pendingSeasonalClaims[0].id);
+    }
+  }, [isCreator, pendingSeasonalClaims, activeSeasonalClaimId]);
 
   const handleGameDeleted = useCallback((message?: string) => {
     if (hasNotifiedDeleted.current) return;
@@ -140,6 +171,24 @@ export function GameDetailScreen(): React.ReactElement {
       const data = await gamesService.getGame(gameId!);
       setGameDetail(data);
       await loadCommonFundContext(data);
+      if (currentUser?.id === data.createdBy) {
+        const seasonal = await transactionsService.getPendingSeasonalCollectionClaims(data.id);
+        setPendingSeasonalClaims(seasonal.claims || []);
+        setMyLatestSeasonalClaim(null);
+      } else {
+        setPendingSeasonalClaims([]);
+        const mySeasonal = await transactionsService.getMyLatestSeasonalCollectionClaim(data.id);
+        const seasonalClaim = mySeasonal.claim || null;
+        if (
+          seasonalClaim &&
+          seasonalClaim.status !== 'pending' &&
+          dismissedSeasonalClaimRef.current === seasonalClaim.id
+        ) {
+          setMyLatestSeasonalClaim(null);
+        } else {
+          setMyLatestSeasonalClaim(seasonalClaim);
+        }
+      }
     } catch (err: any) {
       if (isNotFoundError(err)) {
         handleGameDeleted(err?.message);
@@ -149,7 +198,7 @@ export function GameDetailScreen(): React.ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [gameId, handleGameDeleted, loadCommonFundContext]);
+  }, [gameId, handleGameDeleted, loadCommonFundContext, currentUser?.id]);
 
   const loadGameDetailSilent = useCallback(async () => {
     if (isGameDeleted.current) return;
@@ -157,12 +206,30 @@ export function GameDetailScreen(): React.ReactElement {
       const data = await gamesService.getGame(gameId!);
       setGameDetail(data);
       await loadCommonFundContext(data);
+      if (currentUser?.id === data.createdBy) {
+        const seasonal = await transactionsService.getPendingSeasonalCollectionClaims(data.id);
+        setPendingSeasonalClaims(seasonal.claims || []);
+        setMyLatestSeasonalClaim(null);
+      } else {
+        setPendingSeasonalClaims([]);
+        const mySeasonal = await transactionsService.getMyLatestSeasonalCollectionClaim(data.id);
+        const seasonalClaim = mySeasonal.claim || null;
+        if (
+          seasonalClaim &&
+          seasonalClaim.status !== 'pending' &&
+          dismissedSeasonalClaimRef.current === seasonalClaim.id
+        ) {
+          setMyLatestSeasonalClaim(null);
+        } else {
+          setMyLatestSeasonalClaim(seasonalClaim);
+        }
+      }
     } catch (err: any) {
       if (isNotFoundError(err)) {
         handleGameDeleted(err?.message);
       }
     }
-  }, [gameId, handleGameDeleted, loadCommonFundContext]);
+  }, [gameId, handleGameDeleted, loadCommonFundContext, currentUser?.id]);
 
   useEffect(() => {
     if (!gameId) return;
@@ -187,14 +254,6 @@ export function GameDetailScreen(): React.ReactElement {
     }, [gameId, loadGameDetailSilent]),
   );
 
-  const handleRefresh = async () => {
-    try {
-      setIsRefreshing(true);
-      await loadGameDetailSilent();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   const handleStartGame = async () => {
     if (!gameDetail) return;
@@ -306,6 +365,32 @@ export function GameDetailScreen(): React.ReactElement {
     }
   };
 
+  const handleApproveSeasonalClaim = async (claimId: string) => {
+    try {
+      setIsResolvingSeasonalClaimId(claimId);
+      const result = await transactionsService.approveSeasonalCollectionClaim(claimId);
+      Alert.alert('Solicitud aceptada', result.message || 'Recaudación transferida correctamente');
+      await loadGameDetailSilent();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo aprobar la solicitud');
+    } finally {
+      setIsResolvingSeasonalClaimId(null);
+    }
+  };
+
+  const handleRejectSeasonalClaim = async (claimId: string) => {
+    try {
+      setIsResolvingSeasonalClaimId(claimId);
+      const result = await transactionsService.rejectSeasonalCollectionClaim(claimId);
+      Alert.alert('Solicitud rechazada', result.message || 'Solicitud rechazada');
+      await loadGameDetailSilent();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo rechazar la solicitud');
+    } finally {
+      setIsResolvingSeasonalClaimId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={commonStyles.container}>
@@ -400,16 +485,6 @@ export function GameDetailScreen(): React.ReactElement {
       <AppHeader title={gameDetail.name} showBack />
 
       <ScrollView style={commonStyles.scroll} contentContainerStyle={commonStyles.scrollContent}>
-        <View style={{ alignItems: 'flex-end', marginBottom: Spacing.sm }}>
-          <TouchableOpacity onPress={handleRefresh} disabled={isRefreshing}>
-            {isRefreshing ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Text style={{ fontSize: 18 }}>🔄</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
         {/* Players Section */}
         <View style={commonStyles.section}>
           {gameDetail.players.length > 0 ? (
@@ -701,6 +776,60 @@ export function GameDetailScreen(): React.ReactElement {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        transparent
+        visible={!!activeSeasonalClaim}
+        animationType="fade"
+        onRequestClose={() => setActiveSeasonalClaimId(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: Spacing.lg,
+          }}
+        >
+          <View
+            style={[
+              commonStyles.cardSmall,
+              {
+                width: '100%',
+                maxWidth: 460,
+                marginBottom: 0,
+              },
+            ]}
+          >
+            <Text style={[commonStyles.text, { fontWeight: '700', marginBottom: Spacing.sm }]}>Solicitud de recaudación</Text>
+            <Text style={commonStyles.text}>
+              👤 {activeSeasonalClaim?.requesterUsername || 'Jugador'} solicita la recaudación de temporada.
+            </Text>
+            <Text style={[commonStyles.textSmall, { marginTop: Spacing.xs }]}>Monto: {formatMillions(activeSeasonalClaim?.amount || 0)}</Text>
+            <Text style={[commonStyles.textSmall, { marginTop: Spacing.xs }]}>¿Deseas aceptar la solicitud?</Text>
+
+            <View style={[commonStyles.row, { marginTop: Spacing.md }]}> 
+              <TouchableOpacity
+                style={[commonStyles.buttonSmall, { backgroundColor: Colors.success, marginRight: Spacing.sm }]}
+                onPress={() => activeSeasonalClaim && handleApproveSeasonalClaim(activeSeasonalClaim.id)}
+                disabled={!activeSeasonalClaim || isResolvingSeasonalClaimId === activeSeasonalClaim?.id}
+              >
+                <Text style={[commonStyles.textSmall, { color: Colors.white, fontWeight: '700' }]}>Aceptar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[commonStyles.buttonSmall, { backgroundColor: Colors.error }]}
+                onPress={() => activeSeasonalClaim && handleRejectSeasonalClaim(activeSeasonalClaim.id)}
+                disabled={!activeSeasonalClaim || isResolvingSeasonalClaimId === activeSeasonalClaim?.id}
+              >
+                <Text style={[commonStyles.textSmall, { color: Colors.white, fontWeight: '700' }]}>Rechazar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }

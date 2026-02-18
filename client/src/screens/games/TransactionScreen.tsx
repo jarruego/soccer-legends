@@ -46,6 +46,7 @@ export function TransactionScreen(): React.ReactElement {
   const [amount, setAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRequestingSeasonal, setIsRequestingSeasonal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('type');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -118,10 +119,6 @@ export function TransactionScreen(): React.ReactElement {
   const isValidAmount = transferAmount > 0 && transferAmount <= amountLimit;
   const noAvailableAmount = amountLimit < SLIDER_STEP;
   const sliderMax = noAvailableAmount ? SLIDER_STEP : amountLimit;
-  const displayBalance =
-    transactionType === 'give'
-      ? currentPlayerBalance + transferAmount
-      : Math.max(0, currentPlayerBalance - transferAmount);
 
   useEffect(() => {
     if (amount > amountLimit) {
@@ -238,6 +235,21 @@ export function TransactionScreen(): React.ReactElement {
     }
   };
 
+  const handleRequestSeasonalCollection = async () => {
+    if (!gameDetail) return;
+
+    try {
+      setIsRequestingSeasonal(true);
+      const result = await transactionsService.requestSeasonalCollectionClaim(gameDetail.id);
+      Alert.alert('Solicitud enviada', result.message || 'Solicitud de recaudación enviada a la banca');
+      navigation.navigate('GameDetail', { gameId: gameDetail.id });
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo solicitar la recaudación');
+    } finally {
+      setIsRequestingSeasonal(false);
+    }
+  };
+
   const handleGiveFromBank = async () => {
     if (!recipientId || !isValidAmount) {
       Alert.alert('Error', 'Verifica el monto y el jugador');
@@ -311,22 +323,10 @@ export function TransactionScreen(): React.ReactElement {
           style={commonStyles.scroll}
           contentContainerStyle={commonStyles.scrollContent}
         >
-          {/* Saldo actual */}
-          <View style={commonStyles.cardSmall}>
-            <View style={commonStyles.balanceBox}>
-              <Text style={commonStyles.balanceLabel}>Disponible</Text>
-              <Text style={commonStyles.balanceValue}>
-                {formatMillions(displayBalance)}
-              </Text>
-            </View>
-          </View>
-
           {/* Paso 1: Seleccionar tipo de transacción */}
           {step === 'type' && (
             <View>
               <View style={commonStyles.cardSmall}>
-                <Text style={commonStyles.sectionTitle}>💳 Tipo de Transacción</Text>
-                
                 {/* Transferir a jugador */}
                 <TouchableOpacity
                   style={[commonStyles.playerButton, { marginBottom: Spacing.md }]}
@@ -374,6 +374,22 @@ export function TransactionScreen(): React.ReactElement {
                     <View>
                       <Text style={[commonStyles.text, { fontWeight: '600', color: Colors.success }]}>💰 Dar Dinero (Banca)</Text>
                       <Text style={commonStyles.textSmall}>Como banca, da dinero a un jugador</Text>
+                    </View>
+                    <Text style={commonStyles.selectArrow}>→</Text>
+                  </TouchableOpacity>
+                )}
+
+                {!isCreator && gameDetail.seasonalCollection > 0 && (
+                  <TouchableOpacity
+                    style={[commonStyles.playerButton, { marginTop: Spacing.md }]}
+                    onPress={handleRequestSeasonalCollection}
+                    disabled={isRequestingSeasonal}
+                  >
+                    <View>
+                      <Text style={[commonStyles.text, { fontWeight: '600', color: Colors.primary }]}>🧾 Pedir Recaudación de Temporada</Text>
+                      <Text style={commonStyles.textSmall}>
+                        Solicita {formatMillions(gameDetail.seasonalCollection)} a la banca
+                      </Text>
                     </View>
                     <Text style={commonStyles.selectArrow}>→</Text>
                   </TouchableOpacity>

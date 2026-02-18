@@ -30,6 +30,7 @@ export interface Game {
   initialBalance: string;
   maxPlayers: number;
   maxTransfer: number;
+  seasonalCollection: number;
   location: string | null;
   hasCommonFund: boolean;
   createdBy: string;
@@ -80,6 +81,18 @@ export interface CommonFundClaim {
   resolvedAt?: Date | null;
 }
 
+export interface SeasonalCollectionClaim {
+  id: string;
+  gameId: string;
+  requesterUserId: string;
+  requesterUsername?: string;
+  requesterAvatar?: string | null;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  resolvedAt?: Date | null;
+}
+
 // Resumen financiero
 export interface FinancialSummary {
   gameId: string;
@@ -97,6 +110,7 @@ export interface FinancialSummary {
   playerCount: number;
   maxPlayers: number;
   maxTransfer: number;
+  seasonalCollection: number;
 }
 
 // API Error

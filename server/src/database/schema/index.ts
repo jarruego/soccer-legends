@@ -18,4 +18,7 @@ export type { Transaction, TransactionInsert } from './transactions';
 export { commonFundClaims, CommonFundClaimStatus } from './common-fund-claims';
 export type { CommonFundClaim, CommonFundClaimInsert } from './common-fund-claims';
 
+export { seasonalCollectionClaims, SeasonalCollectionClaimStatus } from './seasonal-collection-claims';
+export type { SeasonalCollectionClaim, SeasonalCollectionClaimInsert } from './seasonal-collection-claims';
+
 export { timestamps, uuidId, autoId, foreignUuid, getTimestamps } from './types';

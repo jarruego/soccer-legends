@@ -73,6 +73,7 @@ export class GamesController {
       playerCount: game.playerCount,
       maxPlayers: game.maxPlayers,
       maxTransfer: game.maxTransfer,
+      seasonalCollection: game.seasonalCollection,
       location: game.location,
       hasCommonFund: game.hasCommonFund,
     }));
@@ -95,6 +96,7 @@ export class GamesController {
       pin: game.pin,
       name: game.name,
       maxTransfer: game.maxTransfer,
+      seasonalCollection: game.seasonalCollection,
       hasCommonFund: game.hasCommonFund,
       message: `Partida "${game.name}" creada. PIN: ${game.pin}`,
     };
@@ -118,6 +120,7 @@ export class GamesController {
       pin: game.pin,
       initialBalance: game.initialBalance,
       maxTransfer: game.maxTransfer,
+      seasonalCollection: game.seasonalCollection,
       hasCommonFund: game.hasCommonFund,
       playerCount: game.playerCount,
       maxPlayers: game.maxPlayers,
@@ -146,6 +149,7 @@ export class GamesController {
       initialBalance: game.initialBalance,
       maxPlayers: game.maxPlayers,
       maxTransfer: game.maxTransfer,
+      seasonalCollection: game.seasonalCollection,
       location: game.location,
       hasCommonFund: game.hasCommonFund,
       createdBy: game.createdBy,

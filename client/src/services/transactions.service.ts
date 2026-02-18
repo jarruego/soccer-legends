@@ -5,7 +5,7 @@
  */
 
 import { httpClient } from './http-client';
-import type { Transaction, FinancialSummary, CommonFundClaim } from '../types/index';
+import type { Transaction, FinancialSummary, CommonFundClaim, SeasonalCollectionClaim } from '../types/index';
 
 export interface TransferData {
   gameId: string;
@@ -133,6 +133,47 @@ class TransactionsService {
    */
   async rejectCommonFundClaim(claimId: string): Promise<{ message: string }> {
     return httpClient.post(`/transactions/common-fund-claims/${claimId}/reject`);
+  }
+
+  /**
+   * Solicita recaudacion por temporada
+   */
+  async requestSeasonalCollectionClaim(
+    gameId: string,
+  ): Promise<{ id: string; status: string; message: string; amount: number }> {
+    return httpClient.post(`/transactions/${gameId}/seasonal-collection-claims/request`);
+  }
+
+  /**
+   * Obtiene solicitudes pendientes de recaudacion (solo banca)
+   */
+  async getPendingSeasonalCollectionClaims(
+    gameId: string,
+  ): Promise<{ claimCount: number; claims: SeasonalCollectionClaim[] }> {
+    return httpClient.get(`/transactions/${gameId}/seasonal-collection-claims/pending`);
+  }
+
+  /**
+   * Obtiene mi ultima solicitud de recaudacion
+   */
+  async getMyLatestSeasonalCollectionClaim(
+    gameId: string,
+  ): Promise<{ claim: SeasonalCollectionClaim | null }> {
+    return httpClient.get(`/transactions/${gameId}/seasonal-collection-claims/my-latest`);
+  }
+
+  /**
+   * Aprueba una solicitud de recaudacion (solo banca)
+   */
+  async approveSeasonalCollectionClaim(claimId: string): Promise<{ amount: number; message: string }> {
+    return httpClient.post(`/transactions/seasonal-collection-claims/${claimId}/approve`);
+  }
+
+  /**
+   * Rechaza una solicitud de recaudacion (solo banca)
+   */
+  async rejectSeasonalCollectionClaim(claimId: string): Promise<{ message: string }> {
+    return httpClient.post(`/transactions/seasonal-collection-claims/${claimId}/reject`);
   }
 
   /**

@@ -150,6 +150,108 @@ export class TransactionsController {
   }
 
   /**
+   * Solicita recaudacion por temporada
+   *
+   * @route POST /transactions/:gameId/seasonal-collection-claims/request
+   */
+  @Post(':gameId/seasonal-collection-claims/request')
+  @HttpCode(HttpStatus.CREATED)
+  async requestSeasonalCollectionClaim(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const claim = await this.transactionsService.requestSeasonalCollectionClaim(user.id, gameId);
+
+    return {
+      id: claim.id,
+      gameId: claim.gameId,
+      requesterUserId: claim.requesterUserId,
+      status: claim.status,
+      createdAt: claim.createdAt,
+      amount: claim.amount,
+      message: 'Solicitud de recaudación enviada a la banca',
+    };
+  }
+
+  /**
+   * Obtiene solicitudes pendientes de recaudacion (solo banca)
+   *
+   * @route GET /transactions/:gameId/seasonal-collection-claims/pending
+   */
+  @Get(':gameId/seasonal-collection-claims/pending')
+  @HttpCode(HttpStatus.OK)
+  async getPendingSeasonalCollectionClaims(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const claims = await this.transactionsService.getPendingSeasonalCollectionClaims(user.id, gameId);
+
+    return {
+      gameId,
+      claimCount: claims.length,
+      claims,
+    };
+  }
+
+  /**
+   * Obtiene mi ultima solicitud de recaudacion
+   *
+   * @route GET /transactions/:gameId/seasonal-collection-claims/my-latest
+   */
+  @Get(':gameId/seasonal-collection-claims/my-latest')
+  @HttpCode(HttpStatus.OK)
+  async getMyLatestSeasonalCollectionClaim(
+    @CurrentUser() user: User,
+    @Param('gameId') gameId: string,
+  ) {
+    const claim = await this.transactionsService.getMyLatestSeasonalCollectionClaim(user.id, gameId);
+
+    return {
+      gameId,
+      claim,
+    };
+  }
+
+  /**
+   * Aprueba una solicitud de recaudacion (solo banca)
+   *
+   * @route POST /transactions/seasonal-collection-claims/:claimId/approve
+   */
+  @Post('seasonal-collection-claims/:claimId/approve')
+  @HttpCode(HttpStatus.OK)
+  async approveSeasonalCollectionClaim(
+    @CurrentUser() user: User,
+    @Param('claimId') claimId: string,
+  ) {
+    const result = await this.transactionsService.approveSeasonalCollectionClaim(user.id, claimId);
+
+    return {
+      claim: result.claim,
+      amount: result.amount,
+      message: `Solicitud aprobada. Se transfirieron ${result.amount} de recaudación.`,
+    };
+  }
+
+  /**
+   * Rechaza una solicitud de recaudacion (solo banca)
+   *
+   * @route POST /transactions/seasonal-collection-claims/:claimId/reject
+   */
+  @Post('seasonal-collection-claims/:claimId/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectSeasonalCollectionClaim(
+    @CurrentUser() user: User,
+    @Param('claimId') claimId: string,
+  ) {
+    const claim = await this.transactionsService.rejectSeasonalCollectionClaim(user.id, claimId);
+
+    return {
+      claim,
+      message: 'Solicitud rechazada',
+    };
+  }
+
+  /**
    * Obtiene solicitudes pendientes del Fondo Común (solo banca)
    *
    * @route GET /transactions/:gameId/common-fund-claims/pending

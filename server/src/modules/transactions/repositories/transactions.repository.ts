@@ -10,9 +10,12 @@ import {
     transactions,
     users,
     commonFundClaims,
+    seasonalCollectionClaims,
     type Transaction,
     type CommonFundClaim,
+    type SeasonalCollectionClaim,
     CommonFundClaimStatus,
+    SeasonalCollectionClaimStatus,
     TransactionType,
 } from '@/database/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -338,6 +341,133 @@ export class TransactionsRepository {
                 resolvedAt: new Date(),
             })
             .where(eq(commonFundClaims.id, claimId))
+            .returning();
+
+        return result[0] || null;
+    }
+
+    /**
+     * Crea una solicitud de recaudacion por temporada
+     */
+    async createSeasonalCollectionClaim(
+        gameId: string,
+        requesterUserId: string,
+        amount: number,
+    ): Promise<SeasonalCollectionClaim> {
+        const result = await db
+            .insert(seasonalCollectionClaims)
+            .values({
+                gameId,
+                requesterUserId,
+                amount,
+                status: SeasonalCollectionClaimStatus.PENDING,
+            })
+            .returning();
+
+        return result[0];
+    }
+
+    /**
+     * Obtiene una solicitud de recaudacion por temporada por ID
+     */
+    async findSeasonalCollectionClaimById(id: string): Promise<SeasonalCollectionClaim | null> {
+        const result = await db.query.seasonalCollectionClaims.findFirst({
+            where: eq(seasonalCollectionClaims.id, id),
+        });
+
+        return result || null;
+    }
+
+    /**
+     * Obtiene solicitudes pendientes por partida con datos del usuario
+     */
+    async findPendingSeasonalCollectionClaimsWithUser(gameId: string): Promise<
+        Array<{
+            id: string;
+            gameId: string;
+            requesterUserId: string;
+            requesterUsername: string;
+            requesterAvatar: string | null;
+            amount: number;
+            status: string;
+            createdAt: Date;
+        }>
+    > {
+        return db
+            .select({
+                id: seasonalCollectionClaims.id,
+                gameId: seasonalCollectionClaims.gameId,
+                requesterUserId: seasonalCollectionClaims.requesterUserId,
+                requesterUsername: users.username,
+                requesterAvatar: users.avatar,
+                amount: seasonalCollectionClaims.amount,
+                status: seasonalCollectionClaims.status,
+                createdAt: seasonalCollectionClaims.createdAt,
+            })
+            .from(seasonalCollectionClaims)
+            .innerJoin(users, eq(seasonalCollectionClaims.requesterUserId, users.id))
+            .where(
+                and(
+                    eq(seasonalCollectionClaims.gameId, gameId),
+                    eq(seasonalCollectionClaims.status, SeasonalCollectionClaimStatus.PENDING),
+                ),
+            )
+            .orderBy(desc(seasonalCollectionClaims.createdAt));
+    }
+
+    /**
+     * Obtiene solicitud pendiente por solicitante en una partida
+     */
+    async findPendingSeasonalCollectionClaimByRequester(
+        gameId: string,
+        requesterUserId: string,
+    ): Promise<SeasonalCollectionClaim | null> {
+        const result = await db.query.seasonalCollectionClaims.findFirst({
+            where: and(
+                eq(seasonalCollectionClaims.gameId, gameId),
+                eq(seasonalCollectionClaims.requesterUserId, requesterUserId),
+                eq(seasonalCollectionClaims.status, SeasonalCollectionClaimStatus.PENDING),
+            ),
+            orderBy: desc(seasonalCollectionClaims.createdAt),
+        });
+
+        return result || null;
+    }
+
+    /**
+     * Obtiene la ultima solicitud de recaudacion de un usuario en una partida
+     */
+    async findLatestSeasonalCollectionClaimByRequester(
+        gameId: string,
+        requesterUserId: string,
+    ): Promise<SeasonalCollectionClaim | null> {
+        const result = await db.query.seasonalCollectionClaims.findFirst({
+            where: and(
+                eq(seasonalCollectionClaims.gameId, gameId),
+                eq(seasonalCollectionClaims.requesterUserId, requesterUserId),
+            ),
+            orderBy: desc(seasonalCollectionClaims.createdAt),
+        });
+
+        return result || null;
+    }
+
+    /**
+     * Resuelve una solicitud de recaudacion por temporada
+     */
+    async resolveSeasonalCollectionClaim(
+        claimId: string,
+        status: SeasonalCollectionClaimStatus.APPROVED | SeasonalCollectionClaimStatus.REJECTED,
+        resolvedByUserId: string,
+    ): Promise<SeasonalCollectionClaim | null> {
+        const result = await db
+            .update(seasonalCollectionClaims)
+            .set({
+                status,
+                resolvedByUserId,
+                resolvedAt: new Date(),
+            })
+            .where(eq(seasonalCollectionClaims.id, claimId))
             .returning();
 
         return result[0] || null;

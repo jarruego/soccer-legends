@@ -22,13 +22,14 @@ import { Colors, Spacing } from '../../styles/theme';
 import { sanitizeDecimalInput } from '../../utils/currency';
 import type { RootStackParamList } from '../../navigation/navigation-types';
 
-type Field = 'name' | 'initialBalance' | 'maxPlayers' | 'maxTransfer' | 'description';
+type Field = 'name' | 'initialBalance' | 'maxPlayers' | 'maxTransfer' | 'seasonalCollection' | 'description';
 
 interface FormData {
   name: string;
   initialBalance: string;
   maxPlayers: string;
   maxTransfer: string;
+  seasonalCollection: string;
   description: string;
   hasCommonFund: boolean;
 }
@@ -38,6 +39,7 @@ interface FormErrors {
   initialBalance?: string;
   maxPlayers?: string;
   maxTransfer?: string;
+  seasonalCollection?: string;
   description?: string;
 }
 
@@ -52,9 +54,10 @@ export function CreateGameScreen(): React.ReactElement {
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
-    initialBalance: '100',
-    maxPlayers: '4',
+    initialBalance: '130',
+    maxPlayers: '2',
     maxTransfer: '500',
+    seasonalCollection: '30',
     description: '',
     hasCommonFund: true,
   });
@@ -67,7 +70,7 @@ export function CreateGameScreen(): React.ReactElement {
     const nextValue =
       field === 'initialBalance'
         ? sanitizeDecimalInput(value)
-        : field === 'maxPlayers' || field === 'maxTransfer'
+        : field === 'maxPlayers' || field === 'maxTransfer' || field === 'seasonalCollection'
           ? value.replace(/[^0-9]/g, '')
           : value;
     setFormData((prev) => ({ ...prev, [field]: nextValue }));
@@ -101,8 +104,8 @@ export function CreateGameScreen(): React.ReactElement {
       errors.maxPlayers = 'El número de jugadores debe ser válido';
     } else if (maxPlayers < 2) {
       errors.maxPlayers = 'Mínimo 2 jugadores';
-    } else if (maxPlayers > 20) {
-      errors.maxPlayers = 'Máximo 20 jugadores';
+    } else if (maxPlayers > 8) {
+      errors.maxPlayers = 'Máximo 8 jugadores';
     }
 
     const maxTransfer = parseInt(formData.maxTransfer, 10);
@@ -114,6 +117,15 @@ export function CreateGameScreen(): React.ReactElement {
       errors.maxTransfer = 'Máximo 500 M€';
     } else if (maxTransfer % 5 !== 0) {
       errors.maxTransfer = 'Debe ir en saltos de 5 M€';
+    }
+
+    const seasonalCollection = parseInt(formData.seasonalCollection, 10);
+    if (formData.seasonalCollection === '' || isNaN(seasonalCollection)) {
+      errors.seasonalCollection = 'La recaudación debe ser válida';
+    } else if (seasonalCollection < 0) {
+      errors.seasonalCollection = 'Mínimo 0 M€';
+    } else if (seasonalCollection > 500) {
+      errors.seasonalCollection = 'Máximo 500 M€';
     }
 
     setFormErrors(errors);
@@ -133,6 +145,7 @@ export function CreateGameScreen(): React.ReactElement {
         initialBalance: parseFloat(formData.initialBalance),
         maxPlayers: parseInt(formData.maxPlayers, 10),
         maxTransfer: parseInt(formData.maxTransfer, 10),
+        seasonalCollection: parseInt(formData.seasonalCollection, 10),
         hasCommonFund: formData.hasCommonFund,
       });
 
@@ -250,7 +263,7 @@ export function CreateGameScreen(): React.ReactElement {
             <Text style={commonStyles.currencyIcon}>M€</Text>
             <TextInput
               style={commonStyles.inputWithIconInput}
-              placeholder="100"
+              placeholder="130"
               keyboardType="number-pad"
               value={formData.initialBalance}
               onChangeText={(value) => handleChange('initialBalance', value)}
@@ -287,12 +300,12 @@ export function CreateGameScreen(): React.ReactElement {
             <TouchableOpacity
               onPress={() => {
                 const current = parseInt(formData.maxPlayers, 10);
-                if (current < 20) {
+                if (current < 8) {
                   handleChange('maxPlayers', (current + 1).toString());
                 }
               }}
               style={commonStyles.stepButton}
-              disabled={isLoading || parseInt(formData.maxPlayers, 10) >= 20}
+              disabled={isLoading || parseInt(formData.maxPlayers, 10) >= 8}
             >
               <Text style={commonStyles.stepButtonText}>+</Text>
             </TouchableOpacity>
@@ -339,6 +352,46 @@ export function CreateGameScreen(): React.ReactElement {
           <Text style={[commonStyles.textSmall, { marginTop: -Spacing.sm, marginBottom: Spacing.md }]}>Valor recomendado: 500 M€</Text>
           {formErrors.maxTransfer && (
             <Text style={commonStyles.error}>{formErrors.maxTransfer}</Text>
+          )}
+
+          {/* Recaudación por temporada */}
+          <Text style={commonStyles.label}>Recaudación por temporada (M€)</Text>
+          <View style={commonStyles.inputGroup}>
+            <TouchableOpacity
+              onPress={() => {
+                const current = parseInt(formData.seasonalCollection, 10) || 0;
+                if (current > 0) {
+                  handleChange('seasonalCollection', Math.max(0, current - 5).toString());
+                }
+              }}
+              style={commonStyles.stepButton}
+              disabled={isLoading || (parseInt(formData.seasonalCollection, 10) || 0) <= 0}
+            >
+              <Text style={commonStyles.stepButtonText}>−</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={commonStyles.inputCenter}
+              keyboardType="number-pad"
+              value={formData.seasonalCollection}
+              onChangeText={(value) => handleChange('seasonalCollection', value)}
+              editable={!isLoading}
+            />
+            <TouchableOpacity
+              onPress={() => {
+                const current = parseInt(formData.seasonalCollection, 10) || 0;
+                if (current < 500) {
+                  handleChange('seasonalCollection', Math.min(500, current + 5).toString());
+                }
+              }}
+              style={commonStyles.stepButton}
+              disabled={isLoading || (parseInt(formData.seasonalCollection, 10) || 0) >= 500}
+            >
+              <Text style={commonStyles.stepButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[commonStyles.textSmall, { marginTop: -Spacing.sm, marginBottom: Spacing.md }]}>Valor por defecto: 30 M€</Text>
+          {formErrors.seasonalCollection && (
+            <Text style={commonStyles.error}>{formErrors.seasonalCollection}</Text>
           )}
 
           {/* Descripción (opcional) */}
