@@ -25,7 +25,6 @@ interface TransactionListProps {
 import { useAuthStore } from '../store/auth-store';
 
 export const TransactionList: React.FC<TransactionListProps> = ({ transactions, emptyText, userId }) => {
-  // Si se pasa userId, se usa ese SIEMPRE. Si no, se usa el usuario logueado.
   const user = useAuthStore((state) => state.user);
   const effectiveUserId = userId !== undefined ? userId : user?.id;
 
@@ -40,6 +39,25 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
       totalOut += t.amount;
     }
   });
+
+  // Scroll infinito: paginación
+  const [page, setPage] = React.useState(1);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [displayedTransactions, setDisplayedTransactions] = React.useState<TransactionListItem[]>([]);
+  const PAGE_SIZE = 20;
+
+  React.useEffect(() => {
+    setDisplayedTransactions(transactions.slice(0, PAGE_SIZE * page));
+  }, [transactions, page]);
+
+  const handleLoadMore = () => {
+    if (displayedTransactions.length >= transactions.length) return;
+    setLoadingMore(true);
+    setTimeout(() => {
+      setPage((prev) => prev + 1);
+      setLoadingMore(false);
+    }, 300); // Simula carga, reemplazar por fetch real si necesario
+  };
 
   if (!transactions.length) {
     return (
@@ -60,7 +78,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
   }
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
+      {/* Resumen fijo arriba */}
       <View style={styles.summaryRow}>
         <View style={styles.summaryCard}>
           <Text style={[styles.summaryAmount, { color: '#1db954' }]}>+{totalIn.toFixed(2)} €</Text>
@@ -71,8 +90,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
           <Text style={styles.summaryLabel}>Total saliente</Text>
         </View>
       </View>
+      {/* Listado scroll infinito */}
       <FlatList
-        data={transactions}
+        style={{ flex: 1 }}
+        data={displayedTransactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
           // ...existing code...
@@ -117,6 +138,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
           );
         }}
         contentContainerStyle={styles.list}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.2}
+        ListFooterComponent={loadingMore ? <Text style={{ textAlign: 'center', color: '#888', marginVertical: 12 }}>Cargando más...</Text> : null}
       />
     </View>
   );
