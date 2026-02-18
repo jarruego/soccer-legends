@@ -60,7 +60,7 @@ export function PlayerTransactionsModal({ visible, onClose, userId, gameId, user
           onPress={() => {}}
           style={{ width: '100%', maxWidth: 400, backgroundColor: '#fff', borderRadius: 12, padding: 0, overflow: 'hidden' }}
         >
-          <AppHeader title={`Transacciones de ${username || ''}`} showBack={false} />
+          {/* Cabecera eliminada para evitar menú de cuenta en la modal */}
           <View style={{ maxHeight: 500, minHeight: 200, padding: 16 }}>
             {loading ? (
               <Text style={{ textAlign: 'center', marginTop: 40 }}>Cargando...</Text>

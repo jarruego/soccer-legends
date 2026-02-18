@@ -21,6 +21,7 @@ interface TransactionListProps {
 
 }
 
+
 import { useAuthStore } from '../store/auth-store';
 
 export const TransactionList: React.FC<TransactionListProps> = ({ transactions, emptyText, userId }) => {
@@ -44,8 +45,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.summaryRow}>
-          <Text style={[styles.summary, { color: '#1db954' }]}>+{totalIn.toFixed(2)}</Text>
-          <Text style={[styles.summary, { color: '#e53935' }]}>-{totalOut.toFixed(2)}</Text>
+          <View style={styles.summaryCard}>
+            <Text style={[styles.summaryAmount, { color: '#1db954' }]}>+{totalIn.toFixed(2)} €</Text>
+            <Text style={styles.summaryLabel}>Total entrante</Text>
+          </View>
+          <View style={styles.summaryCard}>
+            <Text style={[styles.summaryAmount, { color: '#e53935' }]}>-{totalOut.toFixed(2)} €</Text>
+            <Text style={styles.summaryLabel}>Total saliente</Text>
+          </View>
         </View>
         <Text style={styles.emptyText}>{emptyText || 'No hay transacciones.'}</Text>
       </View>
@@ -55,14 +62,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
   return (
     <View>
       <View style={styles.summaryRow}>
-        <Text style={[styles.summary, { color: '#1db954' }]}>+{totalIn.toFixed(2)}</Text>
-        <Text style={[styles.summary, { color: '#e53935' }]}>-{totalOut.toFixed(2)}</Text>
+        <View style={styles.summaryCard}>
+          <Text style={[styles.summaryAmount, { color: '#1db954' }]}>+{totalIn.toFixed(2)} €</Text>
+          <Text style={styles.summaryLabel}>Total entrante</Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={[styles.summaryAmount, { color: '#e53935' }]}>-{totalOut.toFixed(2)} €</Text>
+          <Text style={styles.summaryLabel}>Total saliente</Text>
+        </View>
       </View>
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
-          // Determinar si es positiva o negativa para el usuario indicado
+          // ...existing code...
           let isPositive = false;
           if (effectiveUserId) {
             if (item.type === 'player_to_player') {
@@ -117,13 +130,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     marginHorizontal: 4,
+    gap: 12,
   },
-  summary: {
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#f5f5f7',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  summaryAmount: {
     fontWeight: 'bold',
-    fontSize: 15,
-    minWidth: 70,
+    fontSize: 17,
+    marginBottom: 2,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#888',
     textAlign: 'center',
   },
   item: {
