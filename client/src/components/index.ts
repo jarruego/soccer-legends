@@ -1,3 +1,4 @@
+export { TransactionList } from './TransactionList';
 /**
  * Exporta todos los componentes
  */

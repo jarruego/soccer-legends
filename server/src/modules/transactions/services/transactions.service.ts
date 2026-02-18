@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { TransactionsRepository } from '../repositories/transactions.repository';
 import { GamesRepository } from '@/modules/games/repositories/games.repository';
+import { UsersRepository } from '@/modules/users/repositories/users.repository';
 import {
   CreateTransactionDto,
   TransferToBankDto,
@@ -35,6 +36,7 @@ export class TransactionsService {
   constructor(
     private readonly transactionsRepository: TransactionsRepository,
     private readonly gamesRepository: GamesRepository,
+    private readonly usersRepository: UsersRepository,
   ) {}
 
   /**
@@ -101,14 +103,26 @@ export class TransactionsService {
     await this.gamesRepository.updatePlayerBalance(gameId, senderId, newSenderBalance);
     await this.gamesRepository.updatePlayerBalance(gameId, toUserId, newReceiverBalance);
 
-    // Registrar la transacción
+    // Obtener nombres de usuario si no hay descripción personalizada
+    let finalDescription = description;
+    if (!description) {
+      const [fromUser, toUser] = await Promise.all([
+        this.usersRepository.findById(senderId),
+        this.usersRepository.findById(toUserId),
+      ]);
+      if (fromUser && toUser) {
+        finalDescription = `Transferencia de ${fromUser.username} a ${toUser.username}`;
+      } else {
+        finalDescription = `Transferencia`;
+      }
+    }
     const transaction = await this.transactionsRepository.create({
       gameId,
       fromUserId: senderId,
       toUserId,
       amount,
       type: TransactionType.PLAYER_TO_PLAYER,
-      description: description || `Transferencia de ${senderId} a ${toUserId}`,
+      description: finalDescription,
     });
 
     return transaction;

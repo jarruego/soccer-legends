@@ -18,7 +18,7 @@ import {
     SeasonalCollectionClaimStatus,
     TransactionType,
 } from '@/database/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
 import { gte, lte, or } from 'drizzle-orm';
 
@@ -504,12 +504,38 @@ export class TransactionsRepository {
     /**
      * Obtiene todas las transacciones de un usuario (todas las partidas)
      */
-    async findAllByUser(userId: string): Promise<Transaction[]> {
-        return db
-            .select()
+    async findAllByUser(userId: string): Promise<any[]> {
+        // 1. Obtener las transacciones
+        const rows = await db
+            .select({
+                id: transactions.id,
+                gameId: transactions.gameId,
+                fromUserId: transactions.fromUserId,
+                toUserId: transactions.toUserId,
+                amount: transactions.amount,
+                type: transactions.type,
+                description: transactions.description,
+                createdAt: transactions.createdAt,
+            })
             .from(transactions)
             .where(or(eq(transactions.fromUserId, userId), eq(transactions.toUserId, userId)))
             .orderBy(desc(transactions.createdAt));
-    }    
+
+        // 2. Obtener todos los userIds únicos
+        const userIds = Array.from(new Set(rows.flatMap(r => [r.fromUserId, r.toUserId]).filter((id): id is string => !!id)));
+        const userMap: Record<string, string> = {};
+        if (userIds.length) {
+            const userRows = await db
+                .select({ id: users.id, username: users.username })
+                .from(users)
+                .where(inArray(users.id, userIds));
+            userRows.forEach(u => { userMap[u.id] = u.username; });
+        }
+        return rows.map(row => ({
+            ...row,
+            fromUsername: row.fromUserId ? userMap[row.fromUserId] : null,
+            toUsername: row.toUserId ? userMap[row.toUserId] : null,
+        }));
+    }
 }
 
