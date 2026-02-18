@@ -379,7 +379,7 @@ export function TransactionScreen(): React.ReactElement {
                   </TouchableOpacity>
                 )}
 
-                {!isCreator && gameDetail.seasonalCollection > 0 && (
+                {gameDetail.seasonalCollection > 0 && (
                   <TouchableOpacity
                     style={[commonStyles.playerButton, { marginTop: Spacing.md }]}
                     onPress={handleRequestSeasonalCollection}
