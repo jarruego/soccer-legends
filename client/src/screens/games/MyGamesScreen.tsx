@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppHeader, Button } from '@components/index';
+import { GameCard } from '../../components/GameCard';
 import { useGamesStore } from '@store/index';
 import { commonStyles } from '../../styles/common';
 import { Colors } from '../../styles/theme';
@@ -158,70 +159,12 @@ export function MyGamesScreen(): React.ReactElement {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {userGames.map((game) => (
-            <View key={game.id} style={commonStyles.gameCard}>
-              {/* Status badge */}
-              <View style={commonStyles.gameCardHeader}>
-                <View style={commonStyles.gameTitleContainer}>
-                  <Text style={commonStyles.gameName}>{game.name}</Text>
-                </View>
-                <View
-                  style={[
-                    commonStyles.statusBadge,
-                    { backgroundColor: getStatusColor(game.status) },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      commonStyles.statusText,
-                      { color: getStatusTextColor(game.status) },
-                    ]}
-                  >
-                    {getStatusLabel(game.status)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Description */}
-              {game.description && (
-                <Text style={commonStyles.gameDescription} numberOfLines={2}>
-                  {game.description}
-                </Text>
-              )}
-
-              {/* Game info */}
-              <View style={commonStyles.gameInfoRow}>
-                <View style={commonStyles.gameInfoItem}>
-                  <Text style={commonStyles.gameInfoLabel}>Saldo inicial</Text>
-                  <Text style={commonStyles.gameInfoValue}>
-                    {formatMillions(game.initialBalance)}
-                  </Text>
-                </View>
-                <View style={commonStyles.gameInfoItem}>
-                  <Text style={commonStyles.gameInfoLabel}>Máx jugadores</Text>
-                  <Text style={commonStyles.gameInfoValue}>{game.maxPlayers}</Text>
-                </View>
-                <View style={commonStyles.gameInfoItem}>
-                  <Text style={commonStyles.gameInfoLabel}>PIN</Text>
-                  <Text style={commonStyles.gameInfoPin}>{game.pin}</Text>
-                </View>
-              </View>
-
-              {/* Buttons */}
-              <View style={commonStyles.gameButtonsRow}>
-                <TouchableOpacity
-                  style={[commonStyles.gameButton, commonStyles.viewButton]}
-                  onPress={() => handleViewGame(game.id)}
-                >
-                  <Text style={commonStyles.viewButtonText}>👁️ Ver</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[commonStyles.gameButton, commonStyles.leaveButton]}
-                  onPress={() => handleLeaveGame(game.id, game.name)}
-                >
-                  <Text style={commonStyles.leaveButtonText}>🚪 Abandonar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <GameCard
+              key={game.id}
+              game={game}
+              onView={() => handleViewGame(game.id)}
+              onLeave={() => handleLeaveGame(game.id, game.name)}
+            />
           ))}
         </ScrollView>
       )}
