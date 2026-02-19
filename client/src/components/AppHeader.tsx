@@ -80,15 +80,7 @@ export function AppHeader({ title, showBack = false }: AppHeaderProps): React.Re
               <Text style={styles.menuValue}>{user?.username || 'Usuario'}</Text>
               <Text style={styles.menuSubValue}>{user?.email || ''}</Text>
 
-              <TouchableOpacity
-                onPress={() => {
-                  setMenuOpen(false);
-                  navigation.navigate('TransactionHistory');
-                }}
-                style={[styles.logoutButton, { backgroundColor: '#e0e7ef', marginBottom: 8 }]}
-              >
-                <Text style={[styles.logoutText, { color: '#1a1a1a' }]}>Ver transacciones</Text>
-              </TouchableOpacity>
+
 
               <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                 <Text style={styles.logoutText}>Salir</Text>

@@ -9,7 +9,6 @@ import { JoinGameScreen } from '../screens/games/JoinGameScreen';
 import { MyGamesScreen } from '../screens/games/MyGamesScreen';
 import { GameDetailScreen } from '../screens/games/GameDetailScreen';
 import { TransactionScreen } from '../screens/games/TransactionScreen';
-import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -60,10 +59,6 @@ export function RootNavigator(): React.ReactElement {
           <Stack.Screen
             name="Transaction"
             component={TransactionScreen}
-          />
-          <Stack.Screen
-            name="TransactionHistory"
-            component={TransactionHistoryScreen}
           />
         </Stack.Group>
       )}
