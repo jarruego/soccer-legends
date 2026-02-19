@@ -186,4 +186,31 @@ export class AuthService {
   private async verifyPassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
+    /**
+   * Actualiza el perfil del usuario autenticado
+   * @param userId - ID del usuario
+   * @param updateProfileDto - Datos a actualizar (username, avatar, phone)
+   * @returns Usuario actualizado
+   */
+  async updateProfile(userId: string, updateProfileDto: Partial<Pick<User, 'username' | 'avatar' | 'phone'>>): Promise<User> {
+    // Validar que el usuario existe
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Si se quiere cambiar el username, comprobar que no esté en uso por otro
+    if (updateProfileDto.username && updateProfileDto.username !== user.username) {
+      const existing = await this.usersRepository.findByUsername(updateProfileDto.username);
+      if (existing && existing.id !== userId) {
+        throw new ConflictException('El username ya está en uso');
+      }
+    }
+
+    const updated = await this.usersRepository.update(userId, updateProfileDto);
+    if (!updated) {
+      throw new BadRequestException('No se pudo actualizar el perfil');
+    }
+    return updated;
+  }
 }

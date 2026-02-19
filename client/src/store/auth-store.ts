@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService, type RegisterData, type LoginData } from '@services/auth.service';
+import { type RegisterData, type LoginData } from '@services/auth.service';
 import { STORAGE_KEYS } from '@constants/index';
 import type { User, AuthResponse } from '@/types';
 
@@ -24,9 +24,12 @@ interface AuthState {
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
   clearError: () => void;
+  updateUser: (data: Partial<User>) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+import { authService } from '../services/auth.service';
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isLoading: false,
@@ -120,4 +123,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  updateUser: async (data: Partial<User>) => {
+    set({ isLoading: true, error: null });
+    try {
+      const updated = await authService.updateProfile(data);
+      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
+      set({ user: updated, isLoading: false });
+    } catch (error: any) {
+      set({ error: error.message || 'Error al actualizar perfil', isLoading: false });
+      // Log para depuración
+      console.log('updateUser error:', error);
+      // Axios: error.response, Fetch: error.status
+      const status = error?.status || error?.response?.status;
+      const message = error?.message || error?.response?.data?.message || '';
+      if (status === 409) {
+        throw { status: 409, message };
+      }
+      throw error;
+    }
+  },
 }));

@@ -7,9 +7,9 @@
  * - GET /auth/profile - Obtener perfil del usuario autenticado
  */
 
-import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
-import { RegisterDto, LoginDto, AuthResponseDto } from '../dto';
+import { RegisterDto, LoginDto, AuthResponseDto, UpdateProfileDto } from '../dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import type { User } from '@/database/schema';
@@ -64,6 +64,31 @@ export class AuthController {
       phone: user.phone,
       isEmailVerified: user.isEmailVerified,
       createdAt: user.createdAt,
+    };
+  }
+  /**
+   * Actualiza el perfil del usuario autenticado
+   *
+   * @route PATCH /auth/profile
+   * @guard JwtAuthGuard
+   * @body UpdateProfileDto
+   * @returns Usuario actualizado
+   */
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @CurrentUser() user: User,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ): Promise<object> {
+    const updated = await this.authService.updateProfile(user.id, updateProfileDto);
+    return {
+      id: updated.id,
+      email: updated.email,
+      username: updated.username,
+      avatar: updated.avatar,
+      phone: updated.phone,
+      isEmailVerified: updated.isEmailVerified,
+      createdAt: updated.createdAt,
     };
   }
 }

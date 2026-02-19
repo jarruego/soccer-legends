@@ -7,6 +7,11 @@
 import { httpClient } from './http-client';
 import type { AuthResponse, User } from '../types';
 
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface RegisterData {
   email: string;
   username: string;
@@ -21,6 +26,12 @@ export interface LoginData {
 }
 
 class AuthService {
+    /**
+     * Actualiza el perfil del usuario autenticado
+     */
+    async updateProfile(data: Partial<User>): Promise<User> {
+      return httpClient.patch('/auth/profile', data);
+    }
   /**
    * Registra un nuevo usuario
    */
@@ -40,6 +51,12 @@ class AuthService {
    */
   async getProfile(): Promise<User> {
     return httpClient.get('/auth/profile');
+  }
+    /**
+   * Cambia la contraseña del usuario autenticado
+   */
+  async changePassword(data: ChangePasswordData): Promise<{ message: string }> {
+    return httpClient.post('/auth/change-password', data);
   }
 }
 
