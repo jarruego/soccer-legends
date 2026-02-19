@@ -47,31 +47,47 @@ const HomeScreen: React.FC = () => {
       >
         <View style={{ gap: Spacing.md }}>
           <Button
-            title="Crear"
+            title="Crear Partida"
             onPress={() => navigation.navigate('CreateGame')}
             variant="primary"
           />
           <Button
-            title="Unirse"
+            title="Unirse a Partida"
             onPress={() => navigation.navigate('JoinGame')}
             variant="primary"
           />
 
           {/* Mostrar la última partida activa si existe */}
           {lastActiveGame && (
-            <View style={[commonStyles.gameCard, { marginBottom: 16 }]}> {/* Usar el mismo estilo de card */}
-              <GameCard
-                game={lastActiveGame}
-                onView={() => navigation.navigate('GameDetail', { gameId: lastActiveGame.id })}
-              />
-              {userGames.length > 1 && (
-                <Button
-                  title="Ver todas las partidas"
-                  onPress={() => navigation.navigate('MyGames')}
-                  variant="secondary"
-                  style={{ marginTop: 12 }}
+            <View style={{ marginBottom: 16 }}>
+              <View style={commonStyles.gameCard}>
+                <Text
+                  style={{
+                    fontWeight: '700',
+                    fontSize: 15,
+                    color: '#6B7280',
+                    marginBottom: 8,
+                    marginTop: 2,
+                    textAlign: 'center',
+                    letterSpacing: 1,
+                  }}
+                >
+                  {'PARTIDA EN CURSO'}
+                </Text>
+                <View style={{ borderBottomWidth: 1, borderBottomColor: '#E5E7EB', marginBottom: 12, marginHorizontal: -16 }} />
+                <GameCard
+                  game={lastActiveGame}
+                  onView={() => navigation.navigate('GameDetail', { gameId: lastActiveGame.id })}
                 />
-              )}
+                {userGames.length > 1 && (
+                  <Button
+                    title="Ver todas las partidas"
+                    onPress={() => navigation.navigate('MyGames')}
+                    variant="secondary"
+                    style={{ marginTop: 12 }}
+                  />
+                )}
+              </View>
             </View>
           )}
         </View>
