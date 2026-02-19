@@ -70,7 +70,7 @@ export default function ProfileScreen() {
       {error && (
         <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
       )}
-      <Button title="Guardar perfil" onPress={handleSaveProfile} disabled={loading} />
+      <Button title="CAMBIAR NOMBRE DE USUARIO" onPress={handleSaveProfile} disabled={loading} />
 
       <Text style={[styles.title, { marginTop: 32 }]}>Cambiar contraseña</Text>
       <TextInput
