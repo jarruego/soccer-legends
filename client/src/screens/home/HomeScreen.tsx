@@ -20,6 +20,9 @@ import { useGamesStore } from '@store/index';
 import type { RootStackParamList } from '../../navigation/navigation-types';
 import { Spacing } from '../../styles/theme';
 import { commonStyles } from '../../styles/common';
+import { Image } from 'react-native';
+// @ts-ignore
+const coverImage = require('../../assets/cover.png'); // Ajusta el nombre si es png
 // Update the import path to the correct location of GameCard
 import { GameCard } from '../../components/GameCard';
 
@@ -39,6 +42,13 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={commonStyles.container}>
       <AppHeader />
+
+      {/* Imagen de portada */}
+      <Image
+        source={coverImage}
+        style={{ width: '100%', height: 140, resizeMode: 'contain', marginBottom: 12 }}
+        accessibilityLabel="Portada Soccer Legends"
+      />
 
       {/* Contenido principal */}
       <ScrollView
