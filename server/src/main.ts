@@ -8,8 +8,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+
+  // Middleware global para loguear todas las peticiones entrantes
 
   // Habilitar CORS para el cliente (Expo y web)
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:8081')

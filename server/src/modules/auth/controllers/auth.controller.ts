@@ -10,6 +10,7 @@
 import { Controller, Post, Get, Patch, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { RegisterDto, LoginDto, AuthResponseDto, UpdateProfileDto } from '../dto';
+import { ChangePasswordDto } from '../dto/auth.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import type { User } from '@/database/schema';
@@ -90,5 +91,32 @@ export class AuthController {
       isEmailVerified: updated.isEmailVerified,
       createdAt: updated.createdAt,
     };
+  }
+
+  /**
+   * Cambia la contraseña del usuario autenticado
+   *
+   * @route PATCH /auth/change-password
+   * @guard JwtAuthGuard
+   * @body ChangePasswordDto
+   * @returns Mensaje de éxito o error
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @CurrentUser() user: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    // Log para depuración
+    console.log('change-password body:', changePasswordDto);
+    console.log('change-password user:', user);
+    try {
+      await this.authService.changePassword(user.id, changePasswordDto);
+      console.log('change-password: éxito');
+      return { message: 'Contraseña cambiada correctamente' };
+    } catch (err) {
+      console.error('change-password error:', err);
+      throw err;
+    }
   }
 }

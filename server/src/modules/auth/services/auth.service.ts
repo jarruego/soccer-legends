@@ -213,4 +213,33 @@ export class AuthService {
     }
     return updated;
   }
+
+  /**
+   * Cambia la contraseña del usuario
+   * @param userId - ID del usuario
+   * @param dto - Datos de la nueva contraseña
+   */
+  async changePassword(userId: string, dto: { currentPassword: string; newPassword: string }): Promise<void> {
+    console.log('changePassword service: userId', userId);
+    console.log('changePassword service: dto', dto);
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      console.error('changePassword service: Usuario no encontrado');
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+    // Validar contraseña actual
+    const isPasswordValid = await this.verifyPassword(dto.currentPassword, user.password);
+    console.log('changePassword service: isPasswordValid', isPasswordValid);
+    if (!isPasswordValid) {
+      console.error('changePassword service: Contraseña actual incorrecta');
+      throw new UnauthorizedException('La contraseña actual no es correcta');
+    }
+    // Hashear nueva contraseña
+    const hashedPassword = await this.hashPassword(dto.newPassword);
+    console.log('changePassword service: hashedPassword', hashedPassword);
+    await this.usersRepository.update(userId, { password: hashedPassword });
+    console.log('changePassword service: contraseña actualizada');
+  }
+
+  // Eliminar función duplicada de changePassword o renombrar si es necesario.
 }

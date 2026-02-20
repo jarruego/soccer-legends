@@ -1,11 +1,21 @@
-/**
- * DTOs (Data Transfer Objects) para el módulo de Autenticación
- *
- * Los DTOs validan y transforman los datos que vienen del cliente.
- * Usando class-validator para validación automática.
- */
 
 import { IsEmail, IsString, MinLength, MaxLength, IsOptional, ValidationArguments } from 'class-validator';
+
+/**
+ * DTO para cambiar la contraseña
+ * Validaciones:
+ * - currentPassword: string, min 8
+ * - newPassword: string, min 8
+ */
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(8, { message: 'La contraseña actual debe tener al menos 8 caracteres' })
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(8, { message: 'La nueva contraseña debe tener al menos 8 caracteres' })
+  newPassword!: string;
+}
 
 /**
  * DTO para registrar un nuevo usuario

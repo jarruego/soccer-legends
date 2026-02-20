@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, Modal, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/navigation-types';
 import { AppHeader } from '../components/AppHeader';
@@ -17,6 +17,8 @@ export default function ProfileScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorModal, setErrorModal] = useState<string | null>(null);
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -40,18 +42,23 @@ export default function ProfileScreen() {
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
+      setErrorModal('Las contraseñas no coinciden');
       return;
     }
     setLoading(true);
     try {
       await authService.changePassword({ currentPassword, newPassword });
-      Alert.alert('Contraseña cambiada');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setShowSuccessModal(true);
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'No se pudo cambiar la contraseña');
+      let msg = e?.message || 'No se pudo cambiar la contraseña';
+      // Si viene de axios/fetch con response.data.message
+      if (e?.response?.data?.message) {
+        msg = e.response.data.message;
+      }
+      setErrorModal(msg);
     } finally {
       setLoading(false);
     }
@@ -95,6 +102,51 @@ export default function ProfileScreen() {
         secureTextEntry
       />
       <Button title="Cambiar contraseña" onPress={handleChangePassword} disabled={loading} />
+
+      {/* Modal de éxito */}
+      <Modal
+        transparent
+        visible={showSuccessModal}
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 32, minWidth: 260, alignItems: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 8px 16px rgba(0,0,0,0.2)' } : { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }) }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>¡Contraseña cambiada!</Text>
+            <Text style={{ fontSize: 16, marginBottom: 24, textAlign: 'center' }}>Tu contraseña se ha cambiado correctamente.</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: '#007bff', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 }}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.navigate('Home');
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de error */}
+      <Modal
+        transparent
+        visible={!!errorModal}
+        animationType="fade"
+        onRequestClose={() => setErrorModal(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 32, minWidth: 260, alignItems: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 8px 16px rgba(0,0,0,0.2)' } : { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }) }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#d32f2f' }}>Error</Text>
+            <Text style={{ fontSize: 16, marginBottom: 24, textAlign: 'center', color: '#d32f2f' }}>{errorModal}</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: '#d32f2f', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 }}
+              onPress={() => setErrorModal(null)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
