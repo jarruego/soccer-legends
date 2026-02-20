@@ -11,9 +11,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTabletMode": true,
       "bundleIdentifier": "com.soccerlegends.app"
     },
     "android": {
@@ -21,7 +22,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.soccerlegends"
+      "package": "com.soccerlegends",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -34,6 +36,11 @@
           "orientationLock": "portrait"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "515e826c-c184-4cb8-bbb9-00df226b9d38"
+      }
+    }
   }
 }
