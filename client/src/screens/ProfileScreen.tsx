@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, Modal, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, Modal, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/navigation-types';
 import { AppHeader } from '../components/AppHeader';
@@ -19,6 +19,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -65,43 +66,55 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <AppHeader title="Editar perfil" showBack />
-      <TextInput
-        style={styles.input}
-        value={username}
-        onChangeText={setUsername}
-        placeholder="Nombre de usuario"
-        autoCapitalize="none"
-      />
-      {error && (
-        <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
-      )}
-      <Button title="CAMBIAR NOMBRE DE USUARIO" onPress={handleSaveProfile} disabled={loading} />
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: '#fff' }}>
+      <View style={styles.container}>
+        <AppHeader title="Editar perfil" showBack />
+        <TextInput
+          style={styles.input}
+          value={username}
+          onChangeText={setUsername}
+          placeholder="Nombre de usuario"
+          autoCapitalize="none"
+        />
+        {error && (
+          <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
+        )}
+        <Button title="CAMBIAR NOMBRE DE USUARIO" onPress={handleSaveProfile} disabled={loading} />
 
-      <Text style={[styles.title, { marginTop: 32 }]}>Cambiar contraseña</Text>
-      <TextInput
-        style={styles.input}
-        value={currentPassword}
-        onChangeText={setCurrentPassword}
-        placeholder="Contraseña actual"
-        secureTextEntry
-      />
-      <TextInput
-        style={styles.input}
-        value={newPassword}
-        onChangeText={setNewPassword}
-        placeholder="Nueva contraseña"
-        secureTextEntry
-      />
-      <TextInput
-        style={styles.input}
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        placeholder="Repetir nueva contraseña"
-        secureTextEntry
-      />
-      <Button title="Cambiar contraseña" onPress={handleChangePassword} disabled={loading} />
+        <Text style={[styles.title, { marginTop: 32 }]}>Cambiar contraseña</Text>
+        <TextInput
+          style={styles.input}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          placeholder="Contraseña actual"
+          secureTextEntry
+        />
+        <TextInput
+          style={styles.input}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          placeholder="Nueva contraseña"
+          secureTextEntry
+        />
+        <TextInput
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Repetir nueva contraseña"
+          secureTextEntry
+        />
+        <Button title="Cambiar contraseña" onPress={handleChangePassword} disabled={loading} />
+
+        {/* Enlace para eliminar cuenta */}
+        <TouchableOpacity
+          style={{ marginTop: 40, alignSelf: 'center' }}
+          onPress={() => setShowDeleteModal(true)}
+        >
+          <Text style={{ color: '#d32f2f', fontSize: 15, textDecorationLine: 'underline' }}>
+            Eliminar cuenta y todas mis partidas
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Modal de éxito */}
       <Modal
@@ -147,7 +160,41 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+
+      {/* Modal de confirmación de borrado */}
+      <Modal
+        transparent
+        visible={showDeleteModal}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 32, minWidth: 280, alignItems: 'center', ...(Platform.OS === 'web' ? { boxShadow: '0 8px 16px rgba(0,0,0,0.2)' } : { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }) }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#d32f2f' }}>¿Eliminar cuenta?</Text>
+            <Text style={{ fontSize: 16, marginBottom: 24, textAlign: 'center' }}>
+              Esta acción eliminará tu cuenta, todas las partidas que hayas creado, tus transacciones y participaciones. No hay vuelta atrás.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#d32f2f', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24, marginRight: 8 }}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  // Aquí irá la lógica de borrado real
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Eliminar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ backgroundColor: '#aaa', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24 }}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
   );
 }
 
