@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, Modal, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/navigation-types';
-import { AppHeader } from '../components/AppHeader';
+
 import { useAuthStore } from '../store/auth-store';
 
 import { authService } from '../services/auth.service';
@@ -70,7 +70,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: '#fff' }}>
       <View style={styles.container}>
-        <AppHeader title="Editar perfil" showBack />
+
         <TextInput
           style={styles.input}
           value={username}

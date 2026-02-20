@@ -17,7 +17,7 @@ import {
 import Slider from '@react-native-community/slider';
 import { useNavigation, NavigationProp, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { AppHeader, Button } from '@components/index';
+import { Button } from '@components/index';
 import { useAuthStore } from '@store/auth-store';
 import { gamesService } from '@services/games.service';
 import { transactionsService } from '@services/transactions.service';
@@ -313,7 +313,7 @@ export function TransactionScreen(): React.ReactElement {
 
   return (
     <View style={commonStyles.container}>
-      <AppHeader title="Transferir Dinero" showBack />
+
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}

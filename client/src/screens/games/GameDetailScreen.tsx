@@ -4,6 +4,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -16,7 +17,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, NavigationProp, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { AppHeader, Button } from '@components/index';
+import { Button } from '@components/index';
 import { PlayerTransactionsModal } from './PlayerTransactionsModal';
 import { useAuthStore } from '@store/auth-store';
 import { gamesService } from '@services/games.service';
@@ -56,6 +57,7 @@ export function GameDetailScreen(): React.ReactElement {
   const isGameDeleted = useRef(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastNotifiedClaimRef = useRef<string | null>(null);
+  const CLAIM_STORAGE_KEY = `lastNotifiedClaimId_${currentUser?.id || 'anon'}`;
   const dismissedSeasonalClaimRef = useRef<string | null>(null);
 
   // Estado para modal de transacciones de jugador
@@ -63,18 +65,24 @@ export function GameDetailScreen(): React.ReactElement {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [selectedPlayerUsername, setSelectedPlayerUsername] = useState<string | null>(null);
 
-  const notifyClaimResolution = useCallback((claim: CommonFundClaim | null) => {
+  const notifyClaimResolution = useCallback(async (claim: CommonFundClaim | null) => {
     if (!claim || claim.status === 'pending') return;
-    if (lastNotifiedClaimRef.current === claim.id) return;
+    // Leer el último claim notificado de AsyncStorage
+    let lastNotifiedId = lastNotifiedClaimRef.current;
+    if (!lastNotifiedId) {
+      lastNotifiedId = await AsyncStorage.getItem(CLAIM_STORAGE_KEY);
+      lastNotifiedClaimRef.current = lastNotifiedId;
+    }
+    if (lastNotifiedId === claim.id) return;
 
     lastNotifiedClaimRef.current = claim.id;
+    await AsyncStorage.setItem(CLAIM_STORAGE_KEY, claim.id);
     if (claim.status === 'approved') {
       Alert.alert('Solicitud aceptada', 'La banca ha aceptado tu solicitud del Fondo Común. ✅');
       return;
     }
-
     Alert.alert('Solicitud rechazada', 'La banca ha rechazado tu solicitud del Fondo Común. ❌');
-  }, []);
+  }, [CLAIM_STORAGE_KEY]);
 
   const loadCommonFundContext = useCallback(
     async (game: GameDetail) => {
@@ -99,7 +107,7 @@ export function GameDetailScreen(): React.ReactElement {
       setPendingCommonFundClaims(pendingResult.claims || []);
       setMyLatestCommonFundClaim(myResult.claim || null);
 
-      notifyClaimResolution(myResult.claim || null);
+      await notifyClaimResolution(myResult.claim || null);
     },
     [currentUser?.id, notifyClaimResolution],
   );
@@ -488,7 +496,7 @@ export function GameDetailScreen(): React.ReactElement {
 
   return (
     <View style={commonStyles.container}>
-      <AppHeader title={gameDetail.name} showBack />
+
 
       <ScrollView style={commonStyles.scroll} contentContainerStyle={commonStyles.scrollContent}>
         {/* Players Section */}

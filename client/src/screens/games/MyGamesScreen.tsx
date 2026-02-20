@@ -15,7 +15,7 @@ import {
   Modal,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { AppHeader, Button } from '@components/index';
+import { Button } from '@components/index';
 import { GameCard } from '../../components/GameCard';
 import { useGamesStore } from '@store/index';
 import { commonStyles } from '../../styles/common';
@@ -135,7 +135,7 @@ export function MyGamesScreen(): React.ReactElement {
 
   return (
     <View style={commonStyles.container}>
-      <AppHeader title="Mis Partidas" showBack />
+
 
       {userGames.length === 0 ? (
         <ScrollView

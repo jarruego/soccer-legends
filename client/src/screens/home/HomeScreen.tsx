@@ -15,7 +15,7 @@ import {
   Text,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { AppHeader, Button } from '@components/index';
+import { Button } from '@components/index';
 import { useGamesStore } from '@store/index';
 import type { RootStackParamList } from '../../navigation/navigation-types';
 import { Spacing } from '../../styles/theme';
@@ -41,7 +41,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={commonStyles.container}>
-      <AppHeader />
+
 
       {/* Imagen de portada */}
       <Image

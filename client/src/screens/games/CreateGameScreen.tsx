@@ -15,7 +15,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { AppHeader, Button } from '@components/index';
+import { Button } from '@components/index';
 import { gamesService } from '@services/games.service';
 import { commonStyles } from '../../styles/common';
 import { Colors, Spacing } from '../../styles/theme';
@@ -185,7 +185,7 @@ export function CreateGameScreen(): React.ReactElement {
   if (createdGame) {
     return (
       <View style={commonStyles.container}>
-        <AppHeader title="Crear Partida" showBack />
+
         <ScrollView
           contentContainerStyle={commonStyles.scrollContent}
           style={commonStyles.scroll}
@@ -239,7 +239,7 @@ export function CreateGameScreen(): React.ReactElement {
       style={commonStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <AppHeader title="Crear Partida" showBack />
+
       <ScrollView
         contentContainerStyle={commonStyles.scrollContent}
         style={commonStyles.scroll}

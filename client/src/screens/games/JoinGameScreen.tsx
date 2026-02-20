@@ -13,7 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { AppHeader, Button } from '@components/index';
+import { Button } from '@components/index';
 import { useGamesStore } from '@store/index';
 import type { RootStackParamList } from '../../navigation/navigation-types';
 import { commonStyles } from '../../styles/common';
@@ -76,7 +76,7 @@ export function JoinGameScreen(): React.ReactElement {
       style={commonStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <AppHeader title="Unirse" showBack />
+
       <ScrollView
         contentContainerStyle={[commonStyles.scrollContent, commonStyles.scrollContentMin]}
         style={commonStyles.scroll}

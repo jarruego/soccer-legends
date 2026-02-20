@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Modal, TouchableOpacity, View, Text } from 'react-native';
+import { Modal, TouchableOpacity, View, Text, ScrollView, Platform } from 'react-native';
 import { TransactionList, TransactionListItem } from '../../components/TransactionList';
 import { transactionsService } from '../../services/transactions.service';
-import { AppHeader } from '../../components/AppHeader';
+
 
 interface Props {
   visible: boolean;
@@ -55,22 +55,49 @@ export function PlayerTransactionsModal({ visible, onClose, userId, gameId, user
         onPress={onClose}
         style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => {}}
-          style={{ width: '100%', maxWidth: 400, backgroundColor: '#fff', borderRadius: 12, padding: 0, overflow: 'hidden' }}
-        >
-          {/* Cabecera eliminada para evitar menú de cuenta en la modal */}
-          <View style={{ maxHeight: 500, minHeight: 200, padding: 16 }}>
-            {loading ? (
-              <Text style={{ textAlign: 'center', marginTop: 40 }}>Cargando...</Text>
-            ) : error ? (
-              <Text style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>{error}</Text>
-            ) : (
-                <TransactionList transactions={transactions} emptyText="No hay transacciones." userId={userId} />
-            )}
-          </View>
-        </TouchableOpacity>
+        {Platform.OS === 'web' ? (
+          <div style={{ width: '100%', maxWidth: 400, height: '80vh', background: '#fff', borderRadius: 12, padding: 0, overflow: 'hidden', minHeight: 200, display: 'flex' }}>
+            <View style={{ flex: 1, height: '100%', padding: 16 }}>
+              {loading ? (
+                <Text style={{ textAlign: 'center', marginTop: 40 }}>Cargando...</Text>
+              ) : error ? (
+                <Text style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>{error}</Text>
+              ) : (
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+                  <TransactionList transactions={transactions} emptyText="No hay transacciones." userId={userId} />
+                </ScrollView>
+              )}
+            </View>
+          </div>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {}}
+            style={{
+              width: '100%',
+              maxWidth: 400,
+              backgroundColor: '#fff',
+              borderRadius: 12,
+              padding: 0,
+              overflow: 'hidden',
+              maxHeight: 500,
+              minHeight: 200,
+              display: 'flex',
+            }}
+          >
+            <View style={{ flex: 1, height: '100%', padding: 16 }}>
+              {loading ? (
+                <Text style={{ textAlign: 'center', marginTop: 40 }}>Cargando...</Text>
+              ) : error ? (
+                <Text style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>{error}</Text>
+              ) : (
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+                  <TransactionList transactions={transactions} emptyText="No hay transacciones." userId={userId} />
+                </ScrollView>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     </Modal>
   );

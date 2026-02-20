@@ -1,62 +1,33 @@
+
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  Platform,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Platform } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuthStore } from '@store/auth-store';
 import type { RootStackParamList } from '../navigation/navigation-types';
-import { commonStyles } from '../styles/common';
 import { Colors, Layout, Spacing } from '../styles/theme';
+import { UserIcon } from './UserIcon';
 
-import { Appbar } from 'react-native-paper';
-
-type AppHeaderProps = {
-  title?: string;
-  showBack?: boolean;
-};
-
-export function AppHeader({ title, showBack = false }: AppHeaderProps): React.ReactElement {
+export function AvatarMenuButton() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleBack = () => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  };
 
   const handleLogout = async () => {
     setMenuOpen(false);
     await logout();
   };
 
-  const avatarText = user?.username?.[0]?.toUpperCase() || 'U';
-
   return (
     <>
-      <Appbar.Header style={commonStyles.header}>
-        {showBack ? (
-          <Appbar.BackAction onPress={handleBack} />
-        ) : (
-          <View style={{ width: 48 }} />
-        )}
-        <Appbar.Content title={title || ''} titleStyle={commonStyles.title2} style={{ alignItems: 'center' }} />
-        <TouchableOpacity
-          onPress={() => setMenuOpen(true)}
-          style={styles.avatarButton}
-          accessibilityLabel="Perfil"
-        >
-          <Text style={styles.avatarText}>{avatarText}</Text>
-        </TouchableOpacity>
-      </Appbar.Header>
-
+      <TouchableOpacity
+        onPress={() => setMenuOpen(true)}
+        style={styles.avatarButton}
+        accessibilityLabel="Perfil"
+      >
+        <UserIcon size={22} color="#fff" />
+      </TouchableOpacity>
       {menuOpen && (
         <Modal
           transparent
@@ -101,12 +72,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingRight: 8, // separa del borde derecho
+    marginRight: 8, // extra separación visual
   },
-  avatarText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
+
+
   menuOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',

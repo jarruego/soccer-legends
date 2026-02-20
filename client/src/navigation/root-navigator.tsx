@@ -10,6 +10,7 @@ import { MyGamesScreen } from '../screens/games/MyGamesScreen';
 import { GameDetailScreen } from '../screens/games/GameDetailScreen';
 import { TransactionScreen } from '../screens/games/TransactionScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import { AvatarMenuButton } from '../components/AvatarMenuButton';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,7 +20,9 @@ export function RootNavigator(): React.ReactElement {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerTitleAlign: 'center',
+        headerRight: () => <AvatarMenuButton />,
       }}
     >
       {!isAuthenticated ? (
@@ -40,30 +43,37 @@ export function RootNavigator(): React.ReactElement {
           <Stack.Screen 
             name="Home" 
             component={HomeScreen}
+            options={{ title: 'Inicio' }}
           />
           <Stack.Screen
             name="CreateGame"
             component={CreateGameScreen}
+            options={{ title: 'Crear partida' }}
           />
           <Stack.Screen
             name="JoinGame"
             component={JoinGameScreen}
+            options={{ title: 'Unirse a partida' }}
           />
           <Stack.Screen
             name="MyGames"
             component={MyGamesScreen}
+            options={{ title: 'Mis partidas' }}
           />
           <Stack.Screen
             name="GameDetail"
             component={GameDetailScreen}
+            options={{ title: 'Detalle de partida' }}
           />
           <Stack.Screen
             name="Transaction"
             component={TransactionScreen}
+            options={{ title: 'Transacción' }}
           />
           <Stack.Screen
             name="Profile"
             component={ProfileScreen}
+            options={{ title: 'Editar perfil' }}
           />
         </Stack.Group>
       )}
