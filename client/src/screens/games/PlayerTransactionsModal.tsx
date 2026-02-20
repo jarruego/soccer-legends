@@ -70,33 +70,19 @@ export function PlayerTransactionsModal({ visible, onClose, userId, gameId, user
             </View>
           </div>
         ) : (
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => {}}
-            style={{
-              width: '100%',
-              maxWidth: 400,
-              backgroundColor: '#fff',
-              borderRadius: 12,
-              padding: 0,
-              overflow: 'hidden',
-              maxHeight: 500,
-              minHeight: 200,
-              display: 'flex',
-            }}
-          >
-            <View style={{ flex: 1, height: '100%', padding: 16 }}>
+            <ScrollView
+              style={{ width: '100%', maxWidth: 400, backgroundColor: '#fff', borderRadius: 12, padding: 0, minHeight: 350, flex: 1, alignSelf: 'center' }}
+              contentContainerStyle={{ flexGrow: 1, padding: 16 }}
+              keyboardShouldPersistTaps="handled"
+            >
               {loading ? (
                 <Text style={{ textAlign: 'center', marginTop: 40 }}>Cargando...</Text>
               ) : error ? (
                 <Text style={{ color: 'red', textAlign: 'center', marginTop: 40 }}>{error}</Text>
               ) : (
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
-                  <TransactionList transactions={transactions} emptyText="No hay transacciones." userId={userId} />
-                </ScrollView>
+                <TransactionList transactions={transactions} emptyText="No hay transacciones." userId={userId} />
               )}
-            </View>
-          </TouchableOpacity>
+            </ScrollView>
         )}
       </TouchableOpacity>
     </Modal>
