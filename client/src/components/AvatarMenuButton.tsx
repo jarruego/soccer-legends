@@ -26,7 +26,11 @@ export function AvatarMenuButton() {
         style={styles.avatarButton}
         accessibilityLabel="Perfil"
       >
-        <UserIcon size={22} color="#fff" />
+        <UserIcon
+          size={22}
+          color={Colors.primary}
+          letter={user?.username?.[0]?.toUpperCase() || '?'}
+        />
       </TouchableOpacity>
       {menuOpen && (
         <Modal

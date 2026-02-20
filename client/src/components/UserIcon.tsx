@@ -1,18 +1,32 @@
 import React from 'react';
+import { Text, View, StyleSheet } from 'react-native';
 
 type UserIconProps = {
   size?: number;
   color?: string;
+  letter?: string;
 };
 
-export function UserIcon({ size = 22, color = '#fff' }: UserIconProps) {
+export function UserIcon({ size = 22, color = '#2563EB', letter = '?' }: UserIconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="12" fill="none" />
-      <path
-        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-        fill={color}
-      />
-    </svg>
+    <View style={[styles.container, { width: size, height: size, borderRadius: size ? size / 2 : 11, backgroundColor: color }]}> 
+      <Text style={[styles.letter, { fontSize: size ? size * 0.6 : 13 }]}>{letter}</Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB', // fallback color
+  },
+  letter: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    marginLeft: 7,
+  },
+});
