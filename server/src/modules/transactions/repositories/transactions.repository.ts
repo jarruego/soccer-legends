@@ -549,5 +549,11 @@ export class TransactionsRepository {
             toUsername: row.toUserId ? userMap[row.toUserId] : null,
         }));
     }
+    /**
+     * Elimina todas las transacciones donde el usuario sea fromUserId o toUserId
+     */
+    async deleteAllByUser(userId: string): Promise<void> {
+        await db.delete(transactions).where(or(eq(transactions.fromUserId, userId), eq(transactions.toUserId, userId)));
+    }    
 }
 

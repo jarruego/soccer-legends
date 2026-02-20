@@ -241,5 +241,4 @@ export class AuthService {
     console.log('changePassword service: contraseña actualizada');
   }
 
-  // Eliminar función duplicada de changePassword o renombrar si es necesario.
 }

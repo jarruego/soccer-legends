@@ -4,7 +4,9 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../navigation/navigation-types';
 import { AppHeader } from '../components/AppHeader';
 import { useAuthStore } from '../store/auth-store';
+
 import { authService } from '../services/auth.service';
+import { usersService } from '../services/users.service';
 
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
@@ -177,9 +179,28 @@ export default function ProfileScreen() {
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <TouchableOpacity
                 style={{ backgroundColor: '#d32f2f', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24, marginRight: 8 }}
-                onPress={() => {
+                onPress={async () => {
+                  setLoading(true);
                   setShowDeleteModal(false);
-                  // Aquí irá la lógica de borrado real
+                  try {
+                    // Llama al servicio para borrar la cuenta
+                    await usersService.deleteMe();
+                    // Logout y navegación fuera
+                    await useAuthStore.getState().logout();
+                    Alert.alert('Cuenta eliminada', 'Tu cuenta y todos tus datos han sido eliminados.');
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  } catch (e: any) {
+                    let msg = e?.message || 'No se pudo eliminar la cuenta';
+                    if (e?.response?.data?.message) {
+                      msg = e.response.data.message;
+                    }
+                    setErrorModal(msg);
+                  } finally {
+                    setLoading(false);
+                  }
                 }}
               >
                 <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Eliminar</Text>

@@ -44,10 +44,6 @@ async function bootstrap(): Promise<void> {
 
   const port = parseInt(process.env.PORT || '3000');
   await app.listen(port);
-
-  console.log(`✅ Servidor ejecutándose en http://localhost:${port}`);
-  console.log(`📝 API disponible en http://localhost:${port}/api`);
-  console.log(`🔍 Swagger disponible en http://localhost:${port}/api/docs`);
 }
 
 bootstrap().catch((err) => {

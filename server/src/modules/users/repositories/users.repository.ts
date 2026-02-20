@@ -108,14 +108,13 @@ export class UsersRepository {
   }
 
   /**
-   * Elimina un usuario
+   * Elimina un usuario por ID
    * @param id - ID del usuario
    * @returns true si se eliminó, false si no existe
    */
-  async delete(id: string): Promise<boolean> {
+  async deleteById(id: string): Promise<boolean> {
     try {
       const result = await db.delete(users).where(eq(users.id, id)).returning();
-
       return result.length > 0;
     } catch (e: any) {
       console.error('DB cause:', e?.cause || e);

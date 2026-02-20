@@ -260,4 +260,21 @@ export class GamesRepository {
 
     return result.length > 0;
   }
+  /**
+   * Elimina todas las partidas creadas por un usuario y sus gamePlayers
+   */
+  async deleteAllByCreator(userId: string): Promise<void> {
+    const partidas = await this.findByCreator(userId);
+    for (const partida of partidas) {
+      await db.delete(gamePlayers).where(eq(gamePlayers.gameId, partida.id));
+      await db.delete(games).where(eq(games.id, partida.id));
+    }
+  }
+
+  /**
+   * Elimina todas las participaciones de un usuario en partidas (gamePlayers)
+   */
+  async deleteAllParticipationsByUser(userId: string): Promise<void> {
+    await db.delete(gamePlayers).where(eq(gamePlayers.userId, userId));
+  }  
 }
