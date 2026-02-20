@@ -13,6 +13,8 @@ import type { RootStackParamList } from '../navigation/navigation-types';
 import { commonStyles } from '../styles/common';
 import { Colors, Layout, Spacing } from '../styles/theme';
 
+import { Appbar } from 'react-native-paper';
+
 type AppHeaderProps = {
   title?: string;
   showBack?: boolean;
@@ -39,21 +41,13 @@ export function AppHeader({ title, showBack = false }: AppHeaderProps): React.Re
 
   return (
     <>
-      <View style={commonStyles.header}>
-        <View style={{ width: 40, alignItems: 'flex-start' }}>
-          {showBack ? (
-            <TouchableOpacity onPress={handleBack} style={commonStyles.backButton}>
-              <Text style={commonStyles.backButtonText}>←</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 24 }} />
-          )}
-        </View>
-
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          {title ? <Text style={commonStyles.title2}>{title}</Text> : null}
-        </View>
-
+      <Appbar.Header style={commonStyles.header}>
+        {showBack ? (
+          <Appbar.BackAction onPress={handleBack} />
+        ) : (
+          <View style={{ width: 48 }} />
+        )}
+        <Appbar.Content title={title || ''} titleStyle={commonStyles.title2} style={{ alignItems: 'center' }} />
         <TouchableOpacity
           onPress={() => setMenuOpen(true)}
           style={styles.avatarButton}
@@ -61,7 +55,7 @@ export function AppHeader({ title, showBack = false }: AppHeaderProps): React.Re
         >
           <Text style={styles.avatarText}>{avatarText}</Text>
         </TouchableOpacity>
-      </View>
+      </Appbar.Header>
 
       {menuOpen && (
         <Modal
@@ -79,7 +73,6 @@ export function AppHeader({ title, showBack = false }: AppHeaderProps): React.Re
               <Text style={styles.menuTitle}>Perfil</Text>
               <Text style={styles.menuValue}>{user?.username || 'Usuario'}</Text>
               <Text style={styles.menuSubValue}>{user?.email || ''}</Text>
-
               <TouchableOpacity
                 onPress={() => {
                   setMenuOpen(false);
@@ -89,7 +82,6 @@ export function AppHeader({ title, showBack = false }: AppHeaderProps): React.Re
               >
                 <Text style={[styles.logoutText, { color: '#1a1a1a' }]}>Editar perfil</Text>
               </TouchableOpacity>
-
               <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                 <Text style={styles.logoutText}>Salir</Text>
               </TouchableOpacity>
