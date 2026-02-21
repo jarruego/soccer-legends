@@ -28,6 +28,7 @@ import { commonStyles } from '../../styles/common';
 import { Colors, Spacing } from '../../styles/theme';
 import { formatMillions } from '../../utils/currency';
 import { Dice } from '../../components/Dice';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function GameDetailScreen(): React.ReactElement {
     // Estado para modal de simulador de dados
@@ -412,7 +413,7 @@ export function GameDetailScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <View style={commonStyles.container}>
+      <View style={[commonStyles.container, { flex: 1, minHeight: '100%' }]}> 
         <View style={commonStyles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={commonStyles.loadingText}>Cargando detalles...</Text>
@@ -499,22 +500,14 @@ export function GameDetailScreen(): React.ReactElement {
     );
   }
 
-  // ...existing code...
+        
 
   return (
     <View style={commonStyles.container}>
 
 
       <ScrollView style={commonStyles.scroll} contentContainerStyle={commonStyles.scrollContent}>
-              {/* Botón fijo en el pie de la pantalla para abrir simulador de dados */}
-              <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 5, paddingBottom: 5, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', zIndex: 100 }}>
-                <TouchableOpacity
-                  style={{ backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 20, elevation: 2, minWidth: 120 }}
-                  onPress={() => setShowDiceModal(true)}
-                >
-                  <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 14 }}>🎲 Dados</Text>
-                </TouchableOpacity>
-              </View>
+
               {/* Modal del simulador de dados */}
               <Modal
                 visible={showDiceModal}
@@ -609,12 +602,21 @@ export function GameDetailScreen(): React.ReactElement {
         </View>
 
         {gameDetail.status === 'active' && (
-          <TouchableOpacity
-            style={[commonStyles.buttonBase, { backgroundColor: Colors.warning }]}
-            onPress={handleTransfer}
-          >
-            <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>💸 Transferir Dinero</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[commonStyles.buttonBase, { backgroundColor: Colors.warning }]}
+              onPress={handleTransfer}
+            >
+              <Text style={[commonStyles.text, { color: Colors.white, fontWeight: '700' }]}>💸 Transferir Dinero</Text>
+            </TouchableOpacity>
+            {/* Botón Dados debajo de Transferir Dinero */}
+            <TouchableOpacity
+              style={{ backgroundColor: Colors.primary, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 20, minWidth: 120, alignSelf: 'center', marginTop: 12 }}
+              onPress={() => setShowDiceModal(true)}
+            >
+              <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 14 }}>🎲 Dados</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {/* Fondo Común (debajo de jugadores) */}
