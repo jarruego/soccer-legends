@@ -27,8 +27,11 @@ import type { RootStackParamList } from '../../navigation/navigation-types';
 import { commonStyles } from '../../styles/common';
 import { Colors, Spacing } from '../../styles/theme';
 import { formatMillions } from '../../utils/currency';
+import { Dice } from '../../components/Dice';
 
 export function GameDetailScreen(): React.ReactElement {
+    // Estado para modal de simulador de dados
+    const [showDiceModal, setShowDiceModal] = useState(false);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameDetail'>>();
   const gameId = route.params?.gameId;
@@ -499,6 +502,39 @@ export function GameDetailScreen(): React.ReactElement {
 
 
       <ScrollView style={commonStyles.scroll} contentContainerStyle={commonStyles.scrollContent}>
+              {/* Botón fijo en el pie de la pantalla para abrir simulador de dados */}
+              <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', zIndex: 100 }}>
+                <TouchableOpacity
+                  style={{ backgroundColor: Colors.primary, borderRadius: 24, paddingVertical: 12, paddingHorizontal: 32, elevation: 2 }}
+                  onPress={() => setShowDiceModal(true)}
+                >
+                  <Text style={{ color: Colors.white, fontWeight: '700', fontSize: 16 }}>🎲 Lanzar Dados</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Modal del simulador de dados */}
+              <Modal
+                visible={showDiceModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDiceModal(false)}
+              >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+                  <View style={{ width: 320, backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center' }}>
+                    <Text style={{ fontWeight: '700', fontSize: 20, marginBottom: 16 }}>Simulador de Dados</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12 }}>
+                      <Dice faces={10} />
+                      <Dice faces={6} />
+                      <Dice faces={3} />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setShowDiceModal(false)}
+                      style={{ marginTop: 24, backgroundColor: Colors.error, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 24 }}
+                    >
+                      <Text style={{ color: Colors.white, fontWeight: '700' }}>Cerrar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
         {/* Players Section */}
         <View style={commonStyles.section}>
           {gameDetail.players.length > 0 ? (
@@ -518,7 +554,7 @@ export function GameDetailScreen(): React.ReactElement {
                       }}
                     >
                       <Text style={{ fontWeight: '700', color: Colors.primaryDark }}>
-                        {player.avatar || player.username[0].toUpperCase()}
+                        {player.username[0].toUpperCase()}
                       </Text>
                     </View>
                     <View>
