@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '@store/index';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
+
 import { HomeScreen } from '../screens/home/HomeScreen';
 import { CreateGameScreen } from '../screens/games/CreateGameScreen';
 import { JoinGameScreen } from '../screens/games/JoinGameScreen';
@@ -10,6 +11,7 @@ import { MyGamesScreen } from '../screens/games/MyGamesScreen';
 import { GameDetailScreen } from '../screens/games/GameDetailScreen';
 import { TransactionScreen } from '../screens/games/TransactionScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import { AvatarMenuButton } from '../components/AvatarMenuButton';
 
 const Stack = createNativeStackNavigator();
@@ -35,6 +37,11 @@ export function RootNavigator(): React.ReactElement {
           <Stack.Screen 
             name="Register" 
             component={RegisterScreen}
+          />
+          <Stack.Screen
+            name="PrivacyPolicy"
+            component={PrivacyPolicyScreen}
+            options={{ title: 'Política de Privacidad' }}
           />
         </Stack.Group>
       ) : (

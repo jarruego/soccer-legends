@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Button } from '@components/index';
@@ -65,9 +66,12 @@ export function LoginScreen(): React.ReactElement {
       style={[commonStyles.containerCenter, { backgroundColor: Colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={[commonStyles.card, { marginHorizontal: Spacing.lg }]}>
-        <Text style={[commonStyles.title, { textAlign: 'center' }]}>Soccer Legends</Text>
-        <Text style={[commonStyles.subtitle2, { textAlign: 'center' }]}>Iniciar sesion</Text>
+      <View style={[commonStyles.card, { marginHorizontal: Spacing.lg, maxWidth: 420, width: '95%' }]}> 
+        {/* Imagen de portada */}
+        <Image
+          source={require('../../assets/cover.png')}
+          style={{ width: 260, height: 120, alignSelf: 'center', marginBottom: 12, marginTop: -12, resizeMode: 'contain' }}
+        />
 
         <TextInput
           style={commonStyles.input}
@@ -104,6 +108,15 @@ export function LoginScreen(): React.ReactElement {
           disabled={isLoading}
         >
           <Text style={commonStyles.linkText}>Crear cuenta</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 18 }} />
+        <TouchableOpacity
+          style={[commonStyles.link]}
+          onPress={() => navigation.navigate('PrivacyPolicy')}
+          disabled={isLoading}
+        >
+          <Text style={[commonStyles.linkText, { textDecorationLine: 'underline', color: Colors.gray600 }]}>Política de Privacidad</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

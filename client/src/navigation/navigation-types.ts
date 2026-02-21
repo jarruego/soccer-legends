@@ -6,9 +6,11 @@
 export type RootStackParamList = {
   GameDetail: { gameId: string };
   Transaction: { gameId: string };
+
   // Auth screens
   Login: undefined;
   Register: undefined;
+  PrivacyPolicy: undefined;
 
   // App screens
   Home: undefined;
