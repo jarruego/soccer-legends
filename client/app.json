@@ -22,8 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.soccerlegends",
-      "versionCode": 1
+      "package": "com.soccerlegends"
     },
     "web": {
       "favicon": "./assets/favicon.png",
